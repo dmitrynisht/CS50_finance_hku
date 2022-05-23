@@ -780,7 +780,8 @@ def register():
 
     if request.method == "POST":
 
-        return apology(f"Post request lounch", 400)
+        # done # return apology(f"Post request lounch", 400)
+        
         # Ensure username was submitted
         username = request.form.get("username")
         if not username:
@@ -797,6 +798,8 @@ def register():
         # Ensure password confirmed correctly
         elif not request.form.get("password") == request.form.get("confirmation"):
             return apology("passwords do not match", 400)
+
+        return apology(f"Fields are good!", 400)
 
         # Query database for username
         rows = get_user(username=username)
