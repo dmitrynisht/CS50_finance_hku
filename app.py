@@ -56,7 +56,7 @@ def index():
     """Show portfolio of stocks"""
     
     portfolio = get_portfolio_with_prices()
-    return apology(f"Portfolio {portfolio}", 400)
+    return apology(f"Portfolio recieved", 400)
     # Printing report №
     report_variables(
         'portfolio',
@@ -839,9 +839,9 @@ def get_portfolio_with_prices(**kwargs):
         FROM history AS hist1
         INNER JOIN
             (SELECT
-                ? AS user_id,
-                ? AS dont_filter_by_symbol,
-                ? AS f_symbol) AS filter
+                (:user_id) AS user_id,
+                (:dont_filter_by_symbol) AS dont_filter_by_symbol,
+                (:f_symbol) AS f_symbol) AS filter
         ON hist1.user_id = filter.user_id
         AND (filter.dont_filter_by_symbol
             OR (hist1.symbol = filter.f_symbol))
@@ -856,9 +856,9 @@ def get_portfolio_with_prices(**kwargs):
         FROM history AS hist2
         INNER JOIN
             (SELECT
-                ? AS user_id,
-                ? AS dont_filter_by_symbol,
-                ? AS f_symbol) AS filter
+                (:user_id) AS user_id,
+                (:dont_filter_by_symbol) AS dont_filter_by_symbol,
+                (:f_symbol) AS f_symbol) AS filter
         ON hist2.user_id = filter.user_id
         AND (filter.dont_filter_by_symbol
             OR (hist2.symbol = filter.f_symbol))
@@ -870,7 +870,7 @@ def get_portfolio_with_prices(**kwargs):
     
     dont_filter_by_symbol = kwargs['dont_filter_by_symbol'] if ('dont_filter_by_symbol' in kwargs) else True
     symbol = '' if dont_filter_by_symbol else kwargs['symbol']
-    return f"dont_filter_by_symbol done; {session['user_id']}!! "
+    
     # # Printing report №
     # report_variables(
     #     "get_portfolio checking",
@@ -879,10 +879,11 @@ def get_portfolio_with_prices(**kwargs):
     #     ["symbol:", symbol],
     #     ["symbol type:", type(symbol)],
     # )
-    # return apology(f"get_portfolio_with_prices!! setup", 400)
+    
     rows = db.execute(
-        stmt_last_prices, int(session["user_id"]), dont_filter_by_symbol,
-        symbol, int(session["user_id"]), dont_filter_by_symbol, symbol)
+        stmt_last_prices, user_id=int(session["user_id"]), dont_filter_by_symbol=dont_filter_by_symbol,
+        f_symbol=symbol)
+        # , user_id=int(session["user_id"]), dont_filter_by_symbol=dont_filter_by_symbol, f_symbol=symbol)
 
     return rows
 
