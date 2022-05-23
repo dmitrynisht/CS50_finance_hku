@@ -831,7 +831,7 @@ def get_portfolio_with_prices(**kwargs):
     # rows = db.execute(
     #     stmt_last_prices)
     # return rows
-    
+
     # stmt_last_prices = ("""
     # SELECT
     #     UPPER(balance.symbol) AS symbol,
@@ -856,6 +856,7 @@ def get_portfolio_with_prices(**kwargs):
     # """)
     stmt_last_prices = ("""
         SELECT
+            user_id,
             symbol,
             name,
             SUM(COALESCE(shares,0)) AS shares
