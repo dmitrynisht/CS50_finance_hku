@@ -56,7 +56,7 @@ def index():
     """Show portfolio of stocks"""
     
     portfolio = get_portfolio_with_prices()
-    return apology(f"Portfolio recieved", 400)
+    return apology(f"Portfolio {portfolio}", 400)
     # Printing report №
     report_variables(
         'portfolio',
@@ -824,6 +824,14 @@ def register():
 def get_portfolio_with_prices(**kwargs):
     """
     """
+    return session["user_id"]
+    stmt_last_prices = ("""
+    SELECT
+        (:user_id) AS user_id
+    """)
+    rows = db.execute(
+        stmt_last_prices, user_id=int(session["user_id"]))
+    return rows
     
     stmt_last_prices = ("""
     SELECT
