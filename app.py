@@ -800,6 +800,8 @@ def register():
         # Query database for username
         rows = get_user(username=username)
 
+        return apology(f"User request success", 400)
+
         if len(rows) >= 1:
             # User already exists
             return apology(f"User {username} already exists!", 400)
