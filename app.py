@@ -824,7 +824,7 @@ def register():
 def get_portfolio_with_prices(**kwargs):
     """
     """
-    return session["user_id"]
+    
     stmt_last_prices = ("""
     SELECT
         (:user_id) AS user_id
