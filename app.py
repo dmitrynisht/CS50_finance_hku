@@ -54,8 +54,9 @@ if not os.environ.get("API_KEY"):
 @login_required
 def index():
     """Show portfolio of stocks"""
-
+    
     portfolio = get_portfolio_with_prices()
+    return apology(f"Portfolio SUCCESS!!", 400)
     # Printing report №
     report_variables(
         'portfolio',
@@ -754,7 +755,7 @@ def login():
         # Remember which user has logged in
         session["user_id"] = rows[0]["id"]
         session["username"] = rows[0]["username"]
-        return apology(f"Login SUCCESS!!", 400)
+        
         # Redirect user to home page
         return redirect("/")
 
