@@ -824,13 +824,14 @@ def register():
 def get_portfolio_with_prices(**kwargs):
     """
     """
-    stmt_last_prices = ("""
-    SELECT
-        COALESCE(Null, 999) AS nonull
-    """)
-    rows = db.execute(
-        stmt_last_prices)
-    return rows
+    # stmt_last_prices = ("""
+    # SELECT
+    #     COALESCE(Null, 999) AS nonull
+    # """)
+    # rows = db.execute(
+    #     stmt_last_prices)
+    # return rows
+    
     # stmt_last_prices = ("""
     # SELECT
     #     UPPER(balance.symbol) AS symbol,
@@ -857,7 +858,7 @@ def get_portfolio_with_prices(**kwargs):
         SELECT
             symbol,
             name,
-            SUM(shares) AS shares
+            SUM(COALESCE(shares,0)) AS shares
         FROM history AS hist1
         INNER JOIN
             (SELECT
