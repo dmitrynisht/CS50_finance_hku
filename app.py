@@ -826,7 +826,7 @@ def get_portfolio_with_prices(**kwargs):
     """
     stmt_last_prices = ("""
     SELECT
-        IFNULL(Null, 999) AS nonull
+        COALESCE(Null, 999) AS nonull
     """)
     rows = db.execute(
         stmt_last_prices)
