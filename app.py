@@ -850,7 +850,8 @@ def get_portfolio_with_prices(**kwargs):
     stmt_last_prices = ("""
         SELECT
             symbol,
-            name
+            name,
+            SUM(shares) AS shares
         FROM history
     """)
     dont_filter_by_symbol = kwargs['dont_filter_by_symbol'] if ('dont_filter_by_symbol' in kwargs) else True
