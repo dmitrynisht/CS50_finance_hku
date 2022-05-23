@@ -824,10 +824,31 @@ def register():
 def get_portfolio_with_prices(**kwargs):
     """
     """
-    
+    dont_filter_by_symbol = kwargs['dont_filter_by_symbol'] if ('dont_filter_by_symbol' in kwargs) else True
+    symbol = '' if dont_filter_by_symbol else kwargs['symbol']
+    return dont_filter_by_symbol
     stmt_last_prices = ("""
     SELECT
-        (:user_id) AS user_id
+        UPPER(balance.symbol) AS symbol,
+        balance.name,
+        balance.shares,
+        last_prices.price AS price_bought
+    FROM
+        (SELECT
+            symbol,
+            name,
+            SUM(shares) AS shares
+        FROM history AS hist1
+        INNER JOIN
+            (SELECT
+                (:user_id) AS user_id,
+                (:dont_filter_by_symbol) AS dont_filter_by_symbol,
+                (:f_symbol) AS f_symbol) AS filter
+        ON hist1.user_id = filter.user_id
+        AND (filter.dont_filter_by_symbol
+            OR (hist1.symbol = filter.f_symbol))
+        GROUP BY hist1.symbol
+        HAVING SUM(shares) > 0) AS balance
     """)
     rows = db.execute(
         stmt_last_prices, user_id=int(session["user_id"]))
