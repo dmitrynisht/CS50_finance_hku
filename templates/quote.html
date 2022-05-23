@@ -1,0 +1,80 @@
+{% extends "layout.html" %}
+
+{% block title %}
+    Quote
+{% endblock %}
+
+{% block main %}
+
+    <form class="row row-cols-lg-auto g-3 align-items-center" action="/quote" method="post">
+        <div class="col-12">
+            <div class="form-group">
+                <input autocomplete="off" autofocus class="form-control" name="symbol" required placeholder="Symbol" type="text" value="{{ symbol }}">
+            </div>
+            <div class="col">
+                <button class="btn btn-outline-secondary tops" disabled type="submit">View all symbols</button>
+                <button class="btn btn-outline-primary quote" type="submit">Quote</button>
+            </div>
+
+            <!-- + My addition-->
+            <div class="row row-cols-lg-auto g-3 align-items-center mt-4">
+            {% if symbol %}
+                <div class="col">
+                {% if stock %}
+                    <label>
+                        A share of {{ stock.name }} ({{ stock.symbol }}) costs {{ stock.price | usd }}
+                        <!--A share of Apple Inc (AAPL) costs $160.24.-->
+                    </label>
+                    <button class="btn btn-outline-secondary btn-sm buy" type="submit" name="quoteMode" value="/buy">Buy</button>
+                {% else %}
+                    <label>
+                        No stocks with {{ symbol }} symbol found! Try another symbol.
+                    </label>
+                {% endif %}
+                </div>
+            {% endif %}
+            </div>
+            <!-- - My addition-->
+        </div>
+
+        <script type=text/javascript>
+
+            try {
+                var symbol = "{{ symbol }}";
+            } catch (error) {
+                var symbol = "";
+            }
+            var btnNameUpd = "Update";
+            var btnNameQt = "Quote";
+            var btnQuote = document.querySelector("button.quote");
+            var input = document.querySelector("input[name='symbol']");
+
+            update_btnQuoteContent();
+
+            input.addEventListener("keyup", function()
+            {
+                update_btnQuoteContent();
+            });
+
+            btnQuote.addEventListener("mouseover", function()
+            {
+                update_btnQuoteContent();
+            });
+
+            function update_btnQuoteContent()
+            {
+                let newSymbol = input.value;
+                if (newSymbol == '') {
+                    btnQuote.innerHTML = btnNameQt;
+                } else if (symbol == newSymbol) {
+                    btnQuote.innerHTML = btnNameUpd;
+                } else {
+                    btnQuote.innerHTML = btnNameQt;
+                }
+            }
+
+        </script>
+
+    </form>
+
+{% endblock %}

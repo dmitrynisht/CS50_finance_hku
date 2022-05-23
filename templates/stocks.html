@@ -1,0 +1,22 @@
+{% extends "layout.html" %}
+
+{% block title %}
+    Stocks market
+{% endblock %}
+
+{% block main %}
+    <form action="/stocks" method="get">
+        {% if name %}
+          <h1>Hello {{ name }}!</h1>
+        {% else %}
+          3
+        {% endif %}
+        <!--<div class="form-group">-->
+        <!--    <input autocomplete="off" autofocus class="form-control" name="username" placeholder="Username" type="text">-->
+        <!--</div>-->
+        <!--<div class="form-group">-->
+        <!--    <input class="form-control" name="password" placeholder="Password" type="password">-->
+        <!--</div>-->
+        <!--<button class="btn btn-primary" type="submit">Log In</button>-->
+    </form>
+{% endblock %}

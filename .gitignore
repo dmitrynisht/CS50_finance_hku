@@ -1,0 +1,12 @@
+# Compiled files
+*.pyc
+*.pyi
+
+# Database files
+*.db
+
+# Command files
+*.load
+
+# SQL requests files
+*.sql

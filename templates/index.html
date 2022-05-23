@@ -1,0 +1,188 @@
+{% extends "layout.html" %}
+
+{% block title %}
+    Portfolio
+{% endblock %}
+
+{% block main %}
+
+    <table class="table table-striped table-hover table-borderless">
+        <thead>
+            <tr class="border-bottom-2 border-dark">
+                <th class="text-start" scope="col">Symbol</th>
+                <th class="text-start" scope="col">Name</th>
+                <th class="text-end" scope="col">Shares</th>
+                <th class="text-end" scope="col">Price</th>
+                <th class="text-end" scope="col">Total</th>
+                <th class="text-end d-none" scope="col">Stock_total</th>
+                <th class="text-end" scope="col">Price bought</th>
+                <th class="text-end" scope="col">Buy</th>
+                <th class="text-end" scope="col">trn_shares</th>
+                <th class="text-end" scope="col">Sell</th>
+            </tr>
+        </thead>
+        {% if portfolio %}
+            <tbody>
+            {% for stock in portfolio %}
+                <tr>
+                    <td class="text-start">{{ stock.symbol }}</td>
+                    <td class="text-start">{{ stock.name }}</td>
+                    <td class="text-end {{ stock.symbol }} shares">{{ stock.shares }}</td>
+                    <td class="text-end {{ stock.symbol }} price">{{ stock.price | usd }}</td>
+                    <td class="text-end {{ stock.symbol }} stock_total_l">{{ stock.total | usd }}</td>
+                    <td class="text-end {{ stock.symbol }} stock_total d-none">{{ stock.total }}</td>
+                    <td class="text-end {{ stock.symbol }} price_bought">{{ stock.price_bought | usd }}</td>
+                    <td class="text-end">
+                        <button class="btn btn-outline-secondary btn-sm buy" name="symbol" value="{{ stock.symbol }}">Buy</button>
+                    </td>
+                    <td class="text-end">
+                        <input autocomplete="off" autofocus="" class="form-control mx-auto w-auto {{ stock.symbol }} i_shares" min="1" name="shares" required placeholder="Shares" type="number">
+                    </td>
+                    <td class="text-end">
+                        <button class="btn btn-outline-secondary btn-sm sell" name="symbol" value="{{ stock.symbol }}">Sell</button>
+                    </td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        {% else %}
+            <tbody>
+                <tr>
+                    <td colspan="5">None</td>
+                </tr>
+            </tbody>
+        {% endif %}
+        <tfoot>
+            <tr class="border-top-2 border-dark">
+                <td class="border-0 text-bold text-end" colspan="4" scope="col">Cash</td>
+                <td class="text-end cash_l">{{ cash | usd }}</td>
+                <td class="text-end cash d-none">{{ cash }}</td>
+            </tr>
+            <tr>
+                <td class="border-0 text-bold text-end" colspan="4" scope="col">TOTAL</td>
+                <td class="text-end total_l">{{ total | usd }}</td>
+                <td class="text-end total d-none">{{ total }}</td>
+            </tr>
+        </tfoot>
+    </table>
+
+    <script>
+
+        let tdTotal = document.querySelector(`td.total`);
+        let tdTotal_l = document.querySelector(`td.total_l`);
+        let tdCash = document.querySelector(`td.cash`);
+        let tdCash_l = document.querySelector(`td.cash_l`);
+
+        let btnSellButtons = document.querySelectorAll(`button.sell`);
+        let btnBuyButtons = document.querySelectorAll(`button.buy`);
+
+        for (let btnSell of btnSellButtons) {
+            let symbolSell = btnSell.value;
+            btnSell.addEventListener('click', async function()
+            {
+                // main tasks
+                let i_shares = document.querySelector(`input.${symbolSell}.i_shares`);
+                if (i_shares.value < 1) {
+                    alert("Positive integer for shares needed!");
+                    return
+                }
+
+                let tdShares = document.querySelector(`td.${symbolSell}.shares`);
+                stock_shares = Number(tdShares.innerHTML);
+                if (stock_shares < i_shares.value) {
+                    alert("You don't have so much shares!");
+                    return
+                }
+
+                let tdPrice = document.querySelector(`td.${symbolSell}.price`);
+                let tdStTotal = document.querySelector(`td.${symbolSell}.stock_total`);
+                let tdStTotal_l = document.querySelector(`td.${symbolSell}.stock_total_l`);
+                let url = '/index_sell' +
+                '?symbol=' + symbolSell +
+                '&i_shares=' + i_shares.value +
+                '&stock_shares=' + stock_shares +
+                '&stock_total=' + tdStTotal.innerHTML +
+                '&total=' + tdTotal.innerHTML;
+
+                try {
+                    let response = await fetch(url);
+                    var stock_data = await response.json();
+                } catch (error) {
+                    alert('There was a problem while processing request: error.name=' + error.name + '; error.msg=' + error.msg + ';');
+                    return
+                }
+
+                if (!stock_data["trn_complete"]) {
+                    alert("trn_complete: " + stock_data["trn_complete"] + ". AN ERROR OCCURED WHILE EXECUTING TRANSACTION");
+                    return
+                }
+
+                tdPrice.innerHTML = '$' + stock_data["price"].toFixed(2);
+                tdStTotal.innerHTML = stock_data["stock_total"];
+                tdStTotal_l.innerHTML = '$' + stock_data["stock_total"].toFixed(2);
+                tdTotal.innerHTML = stock_data["total"];
+                tdTotal_l.innerHTML = '$' + stock_data["total"].toFixed(2);
+                tdCash.innerHTML = stock_data["cash"];
+                tdCash_l.innerHTML = '$' + stock_data["cash"].toFixed(2);
+                tdShares.innerHTML = stock_data["shares"];
+                i_shares.value = '';
+
+                alert("Finished successfully");
+
+            });
+        }
+
+        for (let btnBuy of btnBuyButtons) {
+            let symbolBuy = btnBuy.value;
+            btnBuy.addEventListener('click', async function()
+            {
+                // main tasks
+                let i_shares = document.querySelector(`input.${symbolBuy}.i_shares`);
+                if (i_shares.value < 1) {
+                    alert("Positive integer for shares needed!");
+                    return
+                }
+
+                let tdShares = document.querySelector(`td.${symbolBuy}.shares`);
+                let tdPrice_b = document.querySelector(`td.${symbolBuy}.price_bought`);
+                let tdPrice = document.querySelector(`td.${symbolBuy}.price`);
+                let tdStTotal = document.querySelector(`td.${symbolBuy}.stock_total`);
+                let tdStTotal_l = document.querySelector(`td.${symbolBuy}.stock_total_l`);
+                let url = '/index_buy' +
+                '?symbol=' + symbolBuy +
+                '&i_shares=' + i_shares.value +
+                '&stock_shares=' + tdShares.innerHTML +
+                '&stock_total=' + tdStTotal.innerHTML +
+                '&total=' + tdTotal.innerHTML;
+
+                try {
+                    let response = await fetch(url);
+                    var stock_data = await response.json();
+                } catch (error) {
+                    alert('There was a problem while processing request: error.name=' + error.name + '; error.msg=' + error.msg + ';');
+                    return
+                }
+
+                if (!stock_data["trn_complete"]) {
+                    alert("trn_complete: " + stock_data["trn_complete"] + ". AN ERROR OCCURED WHILE EXECUTING TRANSACTION");
+                    return
+                }
+
+                tdPrice.innerHTML = '$' + stock_data["price"].toFixed(2);
+                tdPrice_b.innerHTML = '$' + stock_data["price"].toFixed(2);
+                tdStTotal.innerHTML = stock_data["stock_total"];
+                tdStTotal_l.innerHTML = '$' + stock_data["stock_total"].toFixed(2);
+                tdTotal.innerHTML = stock_data["total"];
+                tdTotal_l.innerHTML = '$' + stock_data["total"].toFixed(2);
+                tdCash.innerHTML = stock_data["cash"];
+                tdCash_l.innerHTML = '$' + stock_data["cash"].toFixed(2);
+                tdShares.innerHTML = stock_data["shares"];
+                i_shares.value = '';
+
+                alert("Finished successfully");
+
+            });
+        }
+
+    </script>
+
+{% endblock %}

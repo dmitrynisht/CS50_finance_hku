@@ -1,0 +1,30 @@
+{% extends "layout.html" %}
+
+{% block title %}
+    History
+{% endblock %}
+
+{% block main %}
+    <table class="table table-striped table-hover table-borderless">
+        <thead>
+            <tr class="border-bottom-2 border-dark">
+                <th class="text-start" scope="col">Symbol</th>
+                <th class="text-end" scope="col">Shares</th>
+                <th class="text-end" scope="col">Price</th>
+                <th class="text-end" scope="col">Transacted</th>
+            </tr>
+        </thead>
+        {% if history %}
+            <tbody>
+            {% for transaction in history %}
+                <tr>
+                    <td class="text-start">{{ transaction.symbol }}</td>
+                    <td class="text-end">{{ transaction.shares }}</td>
+                    <td class="text-end">{{ transaction.price | usd }}</td>
+                    <td class="text-end">{{ transaction.dt }}</td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        {% endif %}
+    </table>
+{% endblock %}
