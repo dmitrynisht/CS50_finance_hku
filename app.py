@@ -829,8 +829,7 @@ def get_portfolio_with_prices(**kwargs):
     SELECT
         UPPER(balance.symbol) AS symbol,
         balance.name,
-        balance.shares,
-        last_prices.price AS price_bought
+        balance.shares
     FROM
         (SELECT
             symbol,
