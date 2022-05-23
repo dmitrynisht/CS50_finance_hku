@@ -754,7 +754,7 @@ def login():
         # Remember which user has logged in
         session["user_id"] = rows[0]["id"]
         session["username"] = rows[0]["username"]
-
+        return apology(f"Login SUCCESS!!", 400)
         # Redirect user to home page
         return redirect("/")
 
