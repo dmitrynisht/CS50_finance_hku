@@ -870,7 +870,7 @@ def get_portfolio_with_prices(**kwargs):
     
     dont_filter_by_symbol = kwargs['dont_filter_by_symbol'] if ('dont_filter_by_symbol' in kwargs) else True
     symbol = '' if dont_filter_by_symbol else kwargs['symbol']
-    return f"dont_filter_by_symbol done!! "
+    return f"dont_filter_by_symbol done; {session['user_id']}!! "
     # # Printing report №
     # report_variables(
     #     "get_portfolio checking",
