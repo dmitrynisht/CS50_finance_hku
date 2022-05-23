@@ -780,6 +780,7 @@ def register():
 
     if request.method == "POST":
 
+        return apology(f"Post request lounch", 400)
         # Ensure username was submitted
         username = request.form.get("username")
         if not username:
@@ -800,7 +801,7 @@ def register():
         # Query database for username
         rows = get_user(username=username)
 
-        return apology(f"User request success", 400)
+        # return apology(f"User request success", 400)
 
         if len(rows) >= 1:
             # User already exists
