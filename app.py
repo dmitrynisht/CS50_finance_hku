@@ -55,7 +55,6 @@ if not os.environ.get("API_KEY"):
 def index():
     """Show portfolio of stocks"""
 
-    return apology(f"Ended up at index page", 400)
     portfolio = get_portfolio_with_prices()
     # Printing report №
     report_variables(
@@ -781,8 +780,6 @@ def register():
 
     if request.method == "POST":
 
-        # done # return apology(f"Post request lounch", 400)
-        
         # Ensure username was submitted
         username = request.form.get("username")
         if not username:
@@ -800,12 +797,8 @@ def register():
         elif not request.form.get("password") == request.form.get("confirmation"):
             return apology("passwords do not match", 400)
 
-        # done # return apology(f"Fields are good!", 400)
-
         # Query database for username
         rows = get_user(username=username)
-
-        # done # return apology(f"User request success", 400)
 
         if len(rows) >= 1:
             # User already exists
