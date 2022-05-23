@@ -853,11 +853,12 @@ def get_portfolio_with_prices(**kwargs):
             name,
             SUM(shares) AS shares
         FROM history
+        where history.user_id = (:user_id)
     """)
     dont_filter_by_symbol = kwargs['dont_filter_by_symbol'] if ('dont_filter_by_symbol' in kwargs) else True
     symbol = '' if dont_filter_by_symbol else kwargs['symbol']
     rows = db.execute(
-        stmt_last_prices)#, user_id=int(session["user_id"]), dont_filter_by_symbol=dont_filter_by_symbol, f_symbol=symbol)
+        stmt_last_prices, user_id=int(session["user_id"]))#, dont_filter_by_symbol=dont_filter_by_symbol, f_symbol=symbol)
     return rows
     
     stmt_last_prices = ("""
