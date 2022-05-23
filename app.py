@@ -56,7 +56,7 @@ def index():
     """Show portfolio of stocks"""
     
     portfolio = get_portfolio_with_prices()
-    return apology(f"Portfolio SUCCESS!!", 400)
+    # return apology(f"Portfolio SUCCESS!!", 400)
     # Printing report №
     report_variables(
         'portfolio',
@@ -879,7 +879,7 @@ def get_portfolio_with_prices(**kwargs):
     #     ["symbol:", symbol],
     #     ["symbol type:", type(symbol)],
     # )
-
+    return apology(f"get_portfolio_with_prices!! setup", 400)
     rows = db.execute(
         stmt_last_prices, int(session["user_id"]), dont_filter_by_symbol,
         symbol, int(session["user_id"]), dont_filter_by_symbol, symbol)
