@@ -981,9 +981,9 @@ def get_user(*, username):
         *
     FROM users
     WHERE
-        username = ?
+        username = :username
     """)
-    rows = db.execute(stmt, username)
+    rows = db.execute(stmt, {"username": username})
 
     return rows
 
