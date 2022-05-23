@@ -56,7 +56,7 @@ def index():
     """Show portfolio of stocks"""
     
     portfolio = get_portfolio_with_prices()
-    # return apology(f"Portfolio SUCCESS!!", 400)
+    return apology(f"Portfolio {portfolio}", 400)
     # Printing report №
     report_variables(
         'portfolio',
@@ -824,7 +824,7 @@ def register():
 def get_portfolio_with_prices(**kwargs):
     """
     """
-    return apology(f"gpwp stmt begin", 400)
+    
     stmt_last_prices = ("""
     SELECT
         UPPER(balance.symbol) AS symbol,
@@ -867,7 +867,7 @@ def get_portfolio_with_prices(**kwargs):
         ) AS last_prices
     ON balance.symbol = last_prices.symbol
     """)
-    return apology(f"gpwp stmt done!! ", 400)
+    return f"gpwp stmt done!! "
     dont_filter_by_symbol = kwargs['dont_filter_by_symbol'] if ('dont_filter_by_symbol' in kwargs) else True
     symbol = '' if dont_filter_by_symbol else kwargs['symbol']
 
