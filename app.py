@@ -799,12 +799,12 @@ def register():
         elif not request.form.get("password") == request.form.get("confirmation"):
             return apology("passwords do not match", 400)
 
-        return apology(f"Fields are good!", 400)
+        # done # return apology(f"Fields are good!", 400)
 
         # Query database for username
         rows = get_user(username=username)
 
-        # return apology(f"User request success", 400)
+        return apology(f"User request success", 400)
 
         if len(rows) >= 1:
             # User already exists
@@ -989,7 +989,7 @@ def get_user(*, username):
     WHERE
         username = :username
     """)
-    rows = db.execute(stmt, {"username": username})
+    rows = db.execute(stmt, username=username)
 
     return rows
 
