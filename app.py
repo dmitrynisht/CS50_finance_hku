@@ -54,7 +54,7 @@ if not os.environ.get("API_KEY"):
 @login_required
 def index():
     """Show portfolio of stocks"""
-    # done # return apology(f"Index atop", 400)
+    
     portfolio = get_portfolio_with_prices()
     # return apology(f"Portfolio SUCCESS!!", 400)
     # Printing report №
@@ -824,7 +824,7 @@ def register():
 def get_portfolio_with_prices(**kwargs):
     """
     """
-    
+    return apology(f"gpwp stmt begin", 400)
     stmt_last_prices = ("""
     SELECT
         UPPER(balance.symbol) AS symbol,
