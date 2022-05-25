@@ -824,55 +824,6 @@ def register():
 def get_portfolio_with_prices(**kwargs):
     """
     """
-    # stmt_last_prices = ("""
-    # SELECT
-    #     COALESCE(Null, 999) AS nonull
-    # """)
-    # rows = db.execute(
-    #     stmt_last_prices)
-    # return rows
-
-    # stmt_last_prices = ("""
-    # SELECT
-    #     UPPER(balance.symbol) AS symbol,
-    #     balance.name,
-    #     balance.shares
-    # FROM
-    #     (SELECT
-    #         symbol,
-    #         name,
-    #         SUM(shares) AS shares
-    #     FROM history AS hist1
-    #     INNER JOIN
-    #         (SELECT
-    #             (:user_id) AS user_id,
-    #             (:dont_filter_by_symbol) AS dont_filter_by_symbol,
-    #             (:f_symbol) AS f_symbol) AS filter
-    #     ON hist1.user_id = filter.user_id
-    #     AND (filter.dont_filter_by_symbol
-    #         OR (hist1.symbol = filter.f_symbol))
-    #     GROUP BY hist1.symbol
-    #     HAVING SUM(shares) > 0) AS balance
-    # """)
-    stmt_last_prices = ("""
-        SELECT
-            user_id,
-            symbol,
-            name,
-            SUM(COALESCE(shares,0)) AS shares
-        FROM history AS hist1
-        INNER JOIN
-            (SELECT
-                (:user_id) AS user_id,
-                (:dont_filter_by_symbol) AS dont_filter_by_symbol,
-                (:f_symbol) AS f_symbol) AS filter
-        ON hist1.user_id = filter.user_id
-    """)
-    dont_filter_by_symbol = kwargs['dont_filter_by_symbol'] if ('dont_filter_by_symbol' in kwargs) else True
-    symbol = '' if dont_filter_by_symbol else kwargs['symbol']
-    rows = db.execute(
-        stmt_last_prices, user_id=int(session["user_id"]), dont_filter_by_symbol=dont_filter_by_symbol, f_symbol=symbol)
-    return rows
     
     stmt_last_prices = ("""
     SELECT
@@ -888,9 +839,9 @@ def get_portfolio_with_prices(**kwargs):
         FROM history AS hist1
         INNER JOIN
             (SELECT
-                (:user_id) AS user_id,
-                (:dont_filter_by_symbol) AS dont_filter_by_symbol,
-                (:f_symbol) AS f_symbol) AS filter
+                ($1) AS user_id,
+                ($2) AS dont_filter_by_symbol,
+                ($3) AS f_symbol) AS filter
         ON hist1.user_id = filter.user_id
         AND (filter.dont_filter_by_symbol
             OR (hist1.symbol = filter.f_symbol))
@@ -905,9 +856,9 @@ def get_portfolio_with_prices(**kwargs):
         FROM history AS hist2
         INNER JOIN
             (SELECT
-                (:user_id) AS user_id,
-                (:dont_filter_by_symbol) AS dont_filter_by_symbol,
-                (:f_symbol) AS f_symbol) AS filter
+                ($1) AS user_id,
+                ($2) AS dont_filter_by_symbol,
+                ($3) AS f_symbol) AS filter
         ON hist2.user_id = filter.user_id
         AND (filter.dont_filter_by_symbol
             OR (hist2.symbol = filter.f_symbol))
@@ -930,9 +881,13 @@ def get_portfolio_with_prices(**kwargs):
     # )
     
     rows = db.execute(
-        stmt_last_prices, user_id=int(session["user_id"]), dont_filter_by_symbol=dont_filter_by_symbol,
+        stmt_last_prices,
+        int(session["user_id"]),
+        dont_filter_by_symbol,
+        symbol,
+        int(session["user_id"]),
+        dont_filter_by_symbol,
         f_symbol=symbol)
-        # , user_id=int(session["user_id"]), dont_filter_by_symbol=dont_filter_by_symbol, f_symbol=symbol)
 
     return rows
 
