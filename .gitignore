@@ -2,8 +2,15 @@
 *.pyc
 *.pyi
 
+# virtual environment
+.venv/
+
+# vscode settings
+.vscode/
+
 # Database files
 *.db
+*.ini
 
 # Command files
 *.load

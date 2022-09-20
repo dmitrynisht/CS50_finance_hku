@@ -121,3 +121,38 @@ def report_variables(*args):
     print("#######-end-№-", args[0], "-########")
 
     pass
+
+
+def mkappdir():
+    # creating session tempdir
+    # Configure session to use filesystem (instead of signed cookies)
+    from tempfile import gettempdir, mkdtemp
+    import os
+    
+    # """A bytes version of tempfile.gettempdir()."""
+    # from tempfile import gettempdirb
+    # app_dir = os.fsencode("CS50_finance")
+    # tmp_dir = gettempdirb()
+    # dir = os.path.join(tmp_dir, app_dir)
+    # try:
+    #     os.mkdir(dir, 0o700)
+    # except FileExistsError:
+    #     pass # already exists
+    
+    # return os.fsdecode(mkdtemp(dir=dir))
+    
+
+    # Custom behaviour for mkdtemp()
+    # return mkdtemp()
+
+    app_dir = 'CS50_finance'
+    tmp_dir = gettempdir()
+    dir = os.path.join(tmp_dir, app_dir)
+    try:
+        os.mkdir(dir, 0o700)
+    except FileExistsError:
+        pass # already exists
+
+    app_dir_prefix = 'cs50_'
+    app_dir_suffix = ''
+    return mkdtemp(prefix=app_dir_prefix, suffix=app_dir_suffix, dir=dir)

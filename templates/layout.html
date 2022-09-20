@@ -50,8 +50,13 @@
                     </ul>
                 {% else %}
                     <ul class="navbar-nav ml-auto mt-2">
-                        <li class="nav-item"><a class="nav-link" href="/register">Register</a></li>
-                        <li class="nav-item"><a class="nav-link" href="/login">Log In</a></li>
+                        {% for href, caption in [('/register', 'Register'), ('/login', 'Log In')] %}
+                            {% if s_action == href %}
+                                <li class="nav-item"><a class="nav-link active" aria-current="page" href="{{ href }}">{{ caption }}</a></li>
+                            {% else %}
+                                <li class="nav-item"><a class="nav-link" href="{{ href }}">{{ caption }}</a></li>
+                            {% endif %}
+                        {% endfor %}
                     </ul>
                 {% endif %}
             </div>

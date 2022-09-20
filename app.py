@@ -1,14 +1,16 @@
 import os
 
-from cs50 import SQL
+# from cs50 import SQL
+from dbm_alch import SQL
 from flask import Flask, flash, redirect, render_template, request, session, url_for
 from flask_session import Session
-from tempfile import mkdtemp
+
 from werkzeug.exceptions import default_exceptions, HTTPException, InternalServerError
 from werkzeug.security import check_password_hash, generate_password_hash
 from datetime import datetime as dt, timezone
 
-from helpers import apology, login_required, lookup, usd, sandbox_lookup, report_variables
+from helpers import apology, login_required, lookup, usd, sandbox_lookup, report_variables, mkappdir
+from helpersprocedures import stmt_sql_get_user
 
 # Configure application
 app = Flask(__name__)
@@ -31,17 +33,17 @@ def after_request(response):
 app.jinja_env.filters["usd"] = usd
 
 # Configure session to use filesystem (instead of signed cookies)
-app.config["SESSION_FILE_DIR"] = mkdtemp()
+app.config["SESSION_FILE_DIR"] = mkappdir()
 app.config["SESSION_PERMANENT"] = False
 app.config["SESSION_TYPE"] = "filesystem"
 Session(app)
 
-# Configure CS50 Library to use SQLite database
-# + deploying to Heroku. Still using CS50 SQL library, but connecting to PostgeSQL instead of SQLite
-# db = SQL("sqlite:///finance.db")
-uri = os.getenv("DATABASE_URL")
-if uri.startswith("postgres://"):
-    uri = uri.replace("postgres://", "postgresql://")
+# Configure modified-CS50 Library to use PostgeSQL database
+# Deploying to Heroku. Connecting to PostgeSQL
+# uri = os.getenv("DATABASE_URL")
+# if uri.startswith("postgres://"):
+#     uri = uri.replace("postgres://", "postgresql://")
+uri = "postgresql://dev:050922pga@172.29.126.57:5432/mydb1"
 db = SQL(uri)
 # - deploying to Heroku
 
@@ -54,9 +56,17 @@ if not os.environ.get("API_KEY"):
 @login_required
 def index():
     """Show portfolio of stocks"""
-    
+
+    # Printing report №Logged into portfolio
+    report_variables(
+        'Logged into portfolio',
+        session["user_id"],
+        session["username"],
+    )
+    return redirect(url_for("login"))
+
     portfolio = get_portfolio_with_prices()
-    return apology(f"Portfolio {portfolio}", 400)
+    
     # Printing report №
     report_variables(
         'portfolio',
@@ -730,6 +740,8 @@ def history():
 def login():
     """Log user in"""
 
+    s_action = "/login"
+
     # Forget any user_id
     if 'user_id' in session:
         session.clear()
@@ -760,8 +772,7 @@ def login():
         return redirect("/")
 
     # User reached route via GET (as by clicking a link or via redirect)
-    else:
-        return render_template("login.html")
+    return render_template("login.html", s_action=s_action)
 
 
 @app.route("/logout")
@@ -979,17 +990,32 @@ def get_portfolio(**kwargs):
 def get_user(*, username):
     """Search for user by username provided"""
 
+    # # USING SQLite: Old fashion
     # # Named argument doesnt work. It seems like limitation of CS50
     # stmt = "SELECT * FROM users WHERE username=:username"
     # rows = db.execute(stmt, {"username": username})
-    stmt = ("""
-    SELECT
-        *
-    FROM users
-    WHERE
-        username = :username
-    """)
-    rows = db.execute(stmt, username=username)
+    # stmt = ("""
+    # SELECT
+    #     *
+    # FROM users
+    # WHERE
+    #     username = :username
+    # """)
+    # rows = db.execute(stmt, username=username)
+
+    # USING dbm_alch.py and sqlalchemy.engine: New fashion
+    stmt = {
+        'stored_func': [
+            stmt_sql_get_user,
+        ],
+        'proc_name': {
+            'sql_get_user': False
+        }
+    }
+    kwargs = {
+        'usr_name_in': username
+    }
+    rows = db.execute(stmt, kwargs)
 
     return rows
 
