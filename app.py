@@ -10,7 +10,7 @@ from werkzeug.security import check_password_hash, generate_password_hash
 from datetime import datetime as dt, timezone
 
 from helpers import apology, login_required, lookup, usd, sandbox_lookup, report_variables, mkappdir
-from helpersprocedures import stmt_sql_get_user
+from helpersprocedures import stmt_sql_get_user, stmt_sql_func_insert_user
 
 # Configure application
 app = Flask(__name__)
@@ -57,13 +57,13 @@ if not os.environ.get("API_KEY"):
 def index():
     """Show portfolio of stocks"""
 
-    # Printing report №Logged into portfolio
-    report_variables(
-        'Logged into portfolio',
-        session["user_id"],
-        session["username"],
-    )
-    return redirect(url_for("login"))
+    # # Printing report №Logged into portfolio
+    # report_variables(
+    #     'Logged into portfolio',
+    #     session["user_id"],
+    #     session["username"],
+    # )
+    # return redirect(url_for("login"))
 
     portfolio = get_portfolio_with_prices()
     
@@ -790,15 +790,18 @@ def logout():
 def register():
     """Register user"""
 
+    s_action = "/register"
+
     if request.method == "POST":
 
         # Ensure username was submitted
         username = request.form.get("username")
+        password = request.form.get("password")
         if not username:
             return apology("must provide username", 400)
 
         # Ensure password was submitted
-        elif not request.form.get("password"):
+        elif not password:
             return apology("must provide password", 400)
 
         # Ensure password was confirmed
@@ -806,7 +809,7 @@ def register():
             return apology("must confirm password", 400)
 
         # Ensure password confirmed correctly
-        elif not request.form.get("password") == request.form.get("confirmation"):
+        elif not password == request.form.get("confirmation"):
             return apology("passwords do not match", 400)
 
         # Query database for username
@@ -816,20 +819,25 @@ def register():
             # User already exists
             return apology(f"User {username} already exists!", 400)
 
-        else:
-            ins_stmt = "INSERT INTO users (username, hash) VALUES(?, ?)"
-            user = db.execute(ins_stmt, username, generate_password_hash(request.form.get("password")))
+        rows = add_user(username=username, hash=generate_password_hash(password))
+        # Printing report №
+        report_variables(
+            "route 'register' : user added",
+            ["rows:",   rows],
+        )
+        # return redirect(url_for("login"))
+        # ins_stmt = "INSERT INTO users (username, hash) VALUES(?, ?)"
+        # user = db.execute(ins_stmt, username, generate_password_hash(request.form.get("password")))
 
-            # Remember which user has logged in
-            session["user_id"] = user
-            session["username"] = username
+        # Remember which user has logged in
+        session["user_id"] = rows[0]["id"]
+        session["username"] = rows[0]["username"]
 
         # Redirect user to home page
         return redirect("/")
 
     # User reached route via GET (as by clicking a link or via redirect)
-    else:
-        return render_template("register.html")
+    return render_template("register.html", s_action=s_action)
 
 
 def get_portfolio_with_prices(**kwargs):
@@ -1014,6 +1022,26 @@ def get_user(*, username):
     }
     kwargs = {
         'usr_name_in': username
+    }
+    rows = db.execute(stmt, kwargs)
+
+    return rows
+
+
+def add_user(*, username, hash):
+    """Adding user by username provided"""
+
+    stmt = {
+        'stored_func': [    
+            stmt_sql_func_insert_user,
+        ],
+        'proc_name': {
+            'sql_insert_user': True,
+        }
+    }
+    kwargs = {
+        'usr_name_in': username,
+        'usr_hash_in': hash,
     }
     rows = db.execute(stmt, kwargs)
 
