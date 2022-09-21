@@ -86,7 +86,7 @@ def stmt_sql_func_insert_user():
     
     stmt = """
     CREATE OR REPLACE FUNCTION sql_insert_user(usr_name_in text, usr_hash_in text)
-    RETURNS TABLE (id integer, usrename text)
+    RETURNS TABLE (id integer, username text)
     AS $$
         INSERT INTO users (username, hash) VALUES (usr_name_in, usr_hash_in)
             RETURNING users.id, users.username;

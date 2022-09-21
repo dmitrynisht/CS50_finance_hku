@@ -10,7 +10,7 @@ from werkzeug.security import check_password_hash, generate_password_hash
 from datetime import datetime as dt, timezone
 
 from helpers import apology, login_required, lookup, usd, sandbox_lookup, report_variables, mkappdir
-from helpersprocedures import stmt_sql_get_user, stmt_sql_func_insert_user
+from helpersprocedures import stmt_sql_get_user, stmt_sql_func_insert_user, stmt_sql_get_portfolio_with_prices
 
 # Configure application
 app = Flask(__name__)
@@ -40,10 +40,10 @@ Session(app)
 
 # Configure modified-CS50 Library to use PostgeSQL database
 # Deploying to Heroku. Connecting to PostgeSQL
-uri = os.getenv("DATABASE_URL")
-if uri.startswith("postgres://"):
-    uri = uri.replace("postgres://", "postgresql://")
-# uri = "postgresql://dev:050922pga@172.29.126.57:5432/mydb1"
+# uri = os.getenv("DATABASE_URL")
+# if uri.startswith("postgres://"):
+#     uri = uri.replace("postgres://", "postgresql://")
+uri = "postgresql://dev:050922pga@172.29.126.57:5432/mydb1"
 db = SQL(uri)
 # - deploying to Heroku
 
@@ -57,19 +57,18 @@ if not os.environ.get("API_KEY"):
 def index():
     """Show portfolio of stocks"""
 
-    # # Printing report №Logged into portfolio
-    # report_variables(
-    #     'Logged into portfolio',
-    #     session["user_id"],
-    #     session["username"],
-    # )
-    # return redirect(url_for("login"))
+    # Printing report №Logged into portfolio
+    report_variables(
+        'Logged into portfolio',
+        session["user_id"],
+        session["username"],
+    )
 
     portfolio = get_portfolio_with_prices()
     
     # Printing report №
     report_variables(
-        'portfolio',
+        'portfolio with prices recieved ',
         *portfolio,
         ['type of portfolio: ', type(portfolio)],
     )
@@ -825,9 +824,6 @@ def register():
             "route 'register' : user added",
             ["rows:",   rows],
         )
-        # return redirect(url_for("login"))
-        # ins_stmt = "INSERT INTO users (username, hash) VALUES(?, ?)"
-        # user = db.execute(ins_stmt, username, generate_password_hash(request.form.get("password")))
 
         # Remember which user has logged in
         session["user_id"] = rows[0]["id"]
@@ -843,70 +839,29 @@ def register():
 def get_portfolio_with_prices(**kwargs):
     """
     """
-    
-    stmt_last_prices = ("""
-    SELECT
-        UPPER(balance.symbol) AS symbol,
-        balance.name,
-        balance.shares,
-        last_prices.price AS price_bought
-    FROM
-        (SELECT
-            symbol,
-            name,
-            SUM(shares) AS shares
-        FROM history AS hist1
-        INNER JOIN
-            (SELECT
-                ($1) AS user_id,
-                ($2) AS dont_filter_by_symbol,
-                ($3) AS f_symbol) AS filter
-        ON hist1.user_id = filter.user_id
-        AND (filter.dont_filter_by_symbol
-            OR (hist1.symbol = filter.f_symbol))
-        GROUP BY hist1.symbol
-        HAVING SUM(shares) > 0) AS balance
-    INNER JOIN
-        (SELECT
-            symbol,
-            name,
-            price,
-            MAX(date_bought) AS date_bought
-        FROM history AS hist2
-        INNER JOIN
-            (SELECT
-                ($1) AS user_id,
-                ($2) AS dont_filter_by_symbol,
-                ($3) AS f_symbol) AS filter
-        ON hist2.user_id = filter.user_id
-        AND (filter.dont_filter_by_symbol
-            OR (hist2.symbol = filter.f_symbol))
-        GROUP BY hist2.symbol
-        HAVING SUM(shares) > 0
-        ) AS last_prices
-    ON balance.symbol = last_prices.symbol
-    """)
-    
-    dont_filter_by_symbol = kwargs['dont_filter_by_symbol'] if ('dont_filter_by_symbol' in kwargs) else True
-    symbol = '' if dont_filter_by_symbol else kwargs['symbol']
-    
+
+    # USING dbm_alch.py and sqlalchemy.engine: New fashion
+    stmt = {
+        'stored_func': [    
+            stmt_sql_get_portfolio_with_prices,
+        ],
+        'proc_name': {
+            'sql_portfolio_with_prices': False
+        }
+    }
+    kwargs = {
+        'usr_id_in': (kwargs['usr_id_in'] if ('usr_id_in' in kwargs) else session["user_id"]),
+        'dont_filter_by_symbol': (kwargs['dont_filter_by_symbol'] if ('dont_filter_by_symbol' in kwargs) else True),
+    }    
+    kwargs['symbol_in'] = ('' if kwargs['dont_filter_by_symbol'] else kwargs['symbol_in'])
+
     # # Printing report №
     # report_variables(
-    #     "get_portfolio checking",
-    #     ["dont_filter_by_symbol:", dont_filter_by_symbol],
-    #     ["dont_filter_by_symbol type:", type(dont_filter_by_symbol)],
-    #     ["symbol:", symbol],
-    #     ["symbol type:", type(symbol)],
+    #     "get_portfolio_with_prices checking",
+    #     *kwargs.items(),
     # )
     
-    rows = db.execute(
-        stmt_last_prices,
-        int(session["user_id"]),
-        dont_filter_by_symbol,
-        symbol,
-        int(session["user_id"]),
-        dont_filter_by_symbol,
-        f_symbol=symbol)
+    rows = db.execute(stmt, kwargs)
 
     return rows
 
@@ -997,19 +952,6 @@ def get_portfolio(**kwargs):
 
 def get_user(*, username):
     """Search for user by username provided"""
-
-    # # USING SQLite: Old fashion
-    # # Named argument doesnt work. It seems like limitation of CS50
-    # stmt = "SELECT * FROM users WHERE username=:username"
-    # rows = db.execute(stmt, {"username": username})
-    # stmt = ("""
-    # SELECT
-    #     *
-    # FROM users
-    # WHERE
-    #     username = :username
-    # """)
-    # rows = db.execute(stmt, username=username)
 
     # USING dbm_alch.py and sqlalchemy.engine: New fashion
     stmt = {
