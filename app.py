@@ -40,10 +40,10 @@ Session(app)
 
 # Configure modified-CS50 Library to use PostgeSQL database
 # Deploying to Heroku. Connecting to PostgeSQL
-# uri = os.getenv("DATABASE_URL")
-# if uri.startswith("postgres://"):
-#     uri = uri.replace("postgres://", "postgresql://")
-uri = "postgresql://dev:050922pga@172.29.126.57:5432/mydb1"
+uri = os.getenv("DATABASE_URL")
+if uri.startswith("postgres://"):
+    uri = uri.replace("postgres://", "postgresql://")
+# uri = "postgresql://dev:050922pga@172.29.126.57:5432/mydb1"
 db = SQL(uri)
 # - deploying to Heroku
 
