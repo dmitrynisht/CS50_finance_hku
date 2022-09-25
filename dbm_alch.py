@@ -50,9 +50,9 @@ class SQL(object):
         """ Connect to the PostgreSQL database server. Using sqlalchemy + psycopg2 connection"""
         self._engine = create_engine(
             db_URL,
-            # execution_options={
-            #     "isolation_level": "AUTOCOMMIT"
-            # }
+            execution_options={
+                "isolation_level": "AUTOCOMMIT"
+            }
         )
 
         # Autocommit by default
@@ -85,12 +85,22 @@ class SQL(object):
             getattr(_data, self._name()).close()
             delattr(_data, self._name())
 
+    def _rawconnect(self):
+        """Open RAW database connection."""
+        if not hasattr(_data, self._name()):
+            # Connect to database
+            # using raw_connection() instead of connect() to enable .callproc()
+            setattr(_data, self._name(), self._engine.raw_connection())
+        
+        # Use this connection
+        return getattr(_data, self._name())
+
     def _name(self):
         """Return object's hash as a str."""
         return str(hash(self))
 
     @_enable_logging
-    def execute(self, stmt, kwargs):
+    def execute(self, stmt, kwargs, *args, connection=None):
         """Execute a SQL stored procedure.
         returns rows"""
         
@@ -98,16 +108,15 @@ class SQL(object):
         import warnings
         import termcolor
 
-        # If no connection yet
-        if not hasattr(_data, self._name()):
+        if connection:
+            # Already connected
+            self._autocommit = False
+        else:
+            # If no connection yet
+            self._autocommit = True
 
             # Connect to database
-            # using raw_connection() instead of connect() to enable .callproc()
-            setattr(_data, self._name(), self._engine.raw_connection())
-            # setattr(_data, self._name(), self._engine.connect())
-
-        # Use this connection
-        connection = getattr(_data, self._name())
+            connection = self._rawconnect()
         
         # Disconnect if/when a Flask app is torn down
         try:

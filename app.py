@@ -10,7 +10,7 @@ from werkzeug.security import check_password_hash, generate_password_hash
 from datetime import datetime as dt, timezone
 
 from helpers import apology, login_required, lookup, usd, sandbox_lookup, report_variables, mkappdir
-from helpersprocedures import stmt_sql_get_user, stmt_sql_func_insert_user, stmt_sql_get_portfolio_with_prices
+from helpersprocedures import stmt_sql_get_user, stmt_sql_func_insert_user, stmt_sql_get_portfolio_with_prices, stmt_sql_get_history, stmt_sql_func_insert_history, stmt_sql_upd_user
 
 # Configure application
 app = Flask(__name__)
@@ -43,7 +43,7 @@ Session(app)
 uri = os.getenv("DATABASE_URL")
 if uri.startswith("postgres://"):
     uri = uri.replace("postgres://", "postgresql://")
-# uri = "postgresql://dev:050922pga@172.29.126.57:5432/mydb1"
+# uri = "postgresql://dev:050922pga@172.31.4.248:5432/mydb1_test_restore"
 db = SQL(uri)
 # - deploying to Heroku
 
@@ -173,9 +173,8 @@ def quote():
 
         return render_template("quote.html", symbol=request.form.get("symbol", symbol), stock=response, s_action=s_action)
 
-    else:
-        # User reached route via GET
-        return render_template("quote.html", s_action=request.args.get("s_action", s_action))
+    # User reached route via GET
+    return render_template("quote.html", s_action=request.args.get("s_action", s_action))
 
 
 @app.route("/buy", methods=["GET", "POST"])
@@ -189,13 +188,13 @@ def buy():
         symbol = request.form.get("symbol")
         shares = request.form.get("shares")
 
-        # # Printing report №
-        # report_variables(
-        #     "NUMBER OF SHARES TESTING",
-        #     ["symbol:", symbol],
-        #     ["shares:", shares],
-        #     ["type of shares:", type(shares)],
-        # )
+        # Printing report №
+        report_variables(
+            "BUY POST TESTING",
+            ["symbol:", symbol],
+            ["shares:", shares],
+            # ["type of shares:", type(shares)],
+        )
 
         if not symbol:
             return apology("Invalid symbol!", 400)
@@ -219,32 +218,31 @@ def buy():
         if shares < 1:
             return apology("Shares required as positive INTEGER!", 400)
 
-        # # Printing report №
-        # report_variables(
-        #     "NUMBER OF SHARES UPDATING",
-        #     ["symbol:", symbol],
-        #     ["shares:", shares],
-        #     ["type of shares:", type(shares)],
-        # )
-
         transaction_data = buy_stocks(symbol=symbol, shares=shares, method=request.method)
         if not transaction_data["trn_complete"]:
             trn_msg = transaction_data["trn_msg"] if "trn_msg" in transaction_data else "Invalid symbol!"
             return apology(trn_msg, 400)
+        
+        # Printing report №
+        report_variables(
+            "BUY POST TESTING FINISHED",
+            ["trn_complete: ", transaction_data["trn_complete"]],
+            ["symbol:", symbol],
+            ["shares:", shares],
+        )
 
         # Reporting results
         return redirect("/")
 
-    else:
+    symbol = request.args.get("symbol")
+    
+    # Printing report №
+    report_variables(
+      "BUY GET",
+      ["symbol:", symbol],
+    )
 
-        symbol = request.args.get("symbol")
-        # # Printing report №
-        # report_variables(
-        #   "BUY GET",
-        #   ["symbol:", symbol],
-        # )
-
-        return render_template("buy.html", symbol=request.args.get("symbol", symbol), s_action=request.args.get("s_action", s_action))
+    return render_template("buy.html", symbol=request.args.get("symbol", symbol), s_action=request.args.get("s_action", s_action))
 
 
 @app.route("/index_buy")
@@ -267,16 +265,16 @@ def index_buy():
     total = request.args.get("total") or 0
     total = round(float(total), 4)
 
-    # # Printing report №
-    # report_variables(
-    #     "index_buy TESTING: data recieved",
-    #     ["method:",             request.method],
-    #     ["symbol:",             symbol],
-    #     ["stock_shares:",       stock_shares],
+    # Printing report №
+    report_variables(
+        "index_buy TESTING: data recieved",
+        ["method:",             request.method],
+        ["symbol:",             symbol],
+        ["stock_shares:",       stock_shares],
     #     ["i_shares:",           i_shares],
     #     ["stock_total_before:", stock_total_before],
     #     ["total:",              total],
-    # )
+    )
 
     # Providing some tests before transacting
     if not symbol:
@@ -326,9 +324,9 @@ def index_buy():
     cash_balance = transaction_data["cash"]
     cash_delta = transaction_data["cash_delta"]
     stock_shares += i_shares
-    stock_total_balance = round(transaction_data["price"] * stock_shares, 4)
+    stock_total_balance = round(transaction_data["price"] * stock_shares, 5)
     stock_total_delta = stock_total_balance - stock_total_before
-    total = round(total + (cash_delta + stock_total_delta), 4)
+    total = round(total + (cash_delta + stock_total_delta), 5)
 
     # # Printing report №
     # report_variables(
@@ -348,13 +346,21 @@ def index_buy():
     # )
 
     stock_data = {
-        'trn_complete': True,
-        'price':        transaction_data["price"],
-        'shares':       stock_shares,
-        'stock_total':  stock_total_balance,
-        'cash':         cash_balance,
-        'total':        total,
+        'trn_complete':     True,
+        'price_lbl':        usd(transaction_data["price"]),
+        'shares':           stock_shares,
+        'stock_total':      stock_total_balance,
+        'stock_total_lbl':  usd(stock_total_balance),
+        'cash':             cash_balance,
+        'cash_lbl':         usd(cash_balance),
+        'total':            total,
+        'total_lbl':        usd(total),
     }
+    # # Printing report №
+    # report_variables(
+    #     "TOTAL_BUY_transaction TESTING",
+    #     [*stock_data.items()],
+    # )
 
     return stock_data
 
@@ -422,9 +428,12 @@ def buy_stocks(*, symbol, shares, method):
     }
 
     # Adding data
+    connection = db._rawconnect()
     try:
         # Commiting transaction
-        commit_transaction(transaction_data=transaction_data)
+        commit_transaction(connection=connection, transaction_data=transaction_data)
+        
+        connection.commit()
 
     except:
         # Printing report №
@@ -437,6 +446,11 @@ def buy_stocks(*, symbol, shares, method):
             'trn_msg': 'AN ERROR OCCURED WHILE EXECUTING TRANSACTION',
         }
         return transaction_data
+
+    finally:
+        # Don't stay connected unnecessarily
+        db._disconnect()
+        connection.close()
 
     transaction_data["trn_complete"] = True
     transaction_data["cash_delta"] = -total
@@ -599,15 +613,18 @@ def index_sell():
     #     ['total type', type(total)],
     # )
 
-    total = round(total + (cash_delta + stock_total_delta), 4)
+    total = round(total + (cash_delta + stock_total_delta), 5)
 
     stock_data = {
         'trn_complete': True,
-        'price':        transaction_data["price"],
-        'shares':       stock_shares,
-        'stock_total':  stock_total_balance,
-        'cash':         cash_balance,
-        'total':        total,
+        'price_lbl':        usd(transaction_data["price"]),
+        'shares':           stock_shares,
+        'stock_total':      stock_total_balance,
+        'stock_total_lbl':  usd(stock_total_balance),
+        'cash':             cash_balance,
+        'cash_lbl':         usd(cash_balance),
+        'total':            total,
+        'total_lbl':        usd(total),
     }
 
     return stock_data
@@ -729,10 +746,17 @@ def history():
 
     s_action = "/history"
 
-    stmt = "SELECT *, datetime(transacted) AS dt FROM history WHERE user_id = ? ORDER BY transacted ASC"
-    rows = db.execute(stmt, int(session["user_id"]))
+    history = get_history(user_id=session["user_id"])
 
-    return render_template("history.html", history=rows, s_action=s_action)
+   # Printing report №
+    report_variables(
+        'route_history TESTING: data recieved',
+        ['session.*: ', session],
+        *history,
+        ['type of history: ', type(history)],
+    )
+
+    return render_template("history.html", history=history, s_action=s_action)
 
 
 @app.route("/login", methods=["GET", "POST"])
@@ -990,33 +1014,97 @@ def add_user(*, username, hash):
     return rows
 
 
-def commit_transaction(*, transaction_data):
+def get_history(*, user_id):
+    """
+    """
+    
+    stmt = {
+        'stored_func': [
+            stmt_sql_get_history,
+        ],
+        'proc_name': {
+            'sql_get_history': False
+        }
+    }
+    kwargs = {
+        'usr_id_in': user_id
+    }
+
+    # Printing report №
+    report_variables(
+        "get_history checking",
+        *kwargs.items(),
+    )
+
+    rows = db.execute(stmt, kwargs)
+
+    return rows
+
+
+def commit_transaction(*, connection, transaction_data):
     """
     """
 
     # Adding data into history table
-    ins_stmt = ("INSERT INTO history (user_id, transacted, symbol, name, shares, price, total, price_bought, date_bought) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)")
-    transaction_row = db.execute(
-        ins_stmt,
-        transaction_data["user_id"],
-        transaction_data["transacted"],
-        transaction_data["symbol"],
-        transaction_data["name"],
-        transaction_data["shares"],
-        transaction_data["price"],
-        transaction_data["total"],
-        transaction_data["price_bought"],
-        transaction_data["date_bought"])
+    stmt = {
+        'stored_func': [
+            stmt_sql_func_insert_history,
+        ],
+        'proc_name': {
+            'sql_insert_history': False
+        }
+    }
+    kwargs = {
+        'user_id_in': transaction_data["user_id"],
+        'transacted_in': transaction_data["transacted"],
+        'symbol_in': transaction_data["symbol"],
+        'name_in': transaction_data["name"],
+        'shares_in': transaction_data["shares"],
+        'price_in': transaction_data["price"],
+        'total_in': transaction_data["total"],
+        'price_bought_in': transaction_data["price_bought"],
+        'date_bought_in': transaction_data["date_bought"],
+    }
+    # Printing report №
+    report_variables(
+        "hist before COMMIT:",
+        [*kwargs.items()],
+    )
+    hist_row = db.execute(stmt, kwargs, connection=connection)
+    # Printing report №
+    report_variables(
+        "hist after COMMIT:",
+        ["user_id: ", hist_row[0]["user_id"]],
+        ["transacted: ", hist_row[0]["transacted"]],
+    )
 
     # Altering data into users table
-    cash_left = transaction_data["cash"] - transaction_data["total"]
-    stmt = "UPDATE users SET cash = ? WHERE username = ?"
-    upd_row = db.execute(stmt, cash_left, session["username"])
+    stmt = {
+        'stored_func': [
+            stmt_sql_upd_user,
+        ],
+        'proc_name': {
+            'sql_user_upd': False
+        }
+    }
+    kwargs = {
+        'usr_name_in': session["username"],
+        # 'usr_name_in': "asdf",
+        'cash_delta_in': transaction_data["total"],
+    }
+    # Printing report №
+    report_variables(
+        "usrs before COMMIT:",
+        [*kwargs.items()],
+    )
+    usr_row = db.execute(stmt, kwargs, connection=connection)
 
-    # # Printing report №
-    # report_variables("TRANSACTION COMPLETE",
-    # [transaction_data["transaction_type"], transaction_data["shares"]],
-    # )
+    # Printing report №
+    report_variables(
+        "usrs after COMMIT:",
+        ["user_id: ", usr_row[0]["user_id"]],
+        ["user_cash: ", usr_row[0]["cash"]],
+    )
 
     pass
 
@@ -1031,3 +1119,58 @@ def errorhandler(e):
 # Listen for errors
 for code in default_exceptions:
     app.errorhandler(code)(errorhandler)
+
+
+def testingrequests():
+    """"""
+    transaction_data = {
+        "user_id": 1,
+        "user_id": 1,
+        "transacted": '2022-09-22 16:26:21.961237+03',
+        "symbol": 'phil',
+        "name": 'PHI Group Inc.',
+        "shares": 10000,
+        "price": 0.0011,
+        "total": 11.0,
+        "price_bought": 0.0011,
+        "date_bought": '2022-09-22 16:26:21.961237+03'
+    }
+    connection = db._rawconnect()
+    try:
+        # Commiting transaction
+        commit_transaction(connection=connection, transaction_data=transaction_data)
+        # db._disconnect() # it works, transaction is not beeing commited if disconnected
+        connection.commit()
+    except:
+        # Printing report №
+        report_variables(
+            "PURCHASE HANDLING",
+            ["AN ERROR OCCURED WHILE EXECUTING TRANSACTION"],
+        )
+    finally:
+        # Don't stay connected unnecessarily
+        db._disconnect()
+        connection.close()
+
+
+def main(argv=None):
+    if argv is None:
+        argv = sys.argv
+
+    print('hello world')
+
+    testingrequests()
+    #
+
+    # folder and this file where moved to linux file system
+
+    # 16.05.2022: testing uploading to git
+    # 16.05.2022: testing uploading to heroku
+    # print('heroku')
+    # test_connect_psyco()
+    # test_connect_psyco_alch()
+    s ='stop'
+
+if __name__ == '__main__':
+    import sys
+    sys.exit(main())

@@ -64,7 +64,7 @@ def stmt_sql_get_user():
 
     stmt = """
     CREATE OR REPLACE FUNCTION sql_get_user(usr_name_in text)
-    RETURNS TABLE (id integer, username text, hash text, cash float)
+    RETURNS TABLE (id bigint, username text, hash text, cash float)
     AS $$
         SELECT
             users.id,
@@ -86,7 +86,7 @@ def stmt_sql_func_insert_user():
     
     stmt = """
     CREATE OR REPLACE FUNCTION sql_insert_user(usr_name_in text, usr_hash_in text)
-    RETURNS TABLE (id integer, username text)
+    RETURNS TABLE (id bigint, username text)
     AS $$
         INSERT INTO users (username, hash) VALUES (usr_name_in, usr_hash_in)
             RETURNING users.id, users.username;
@@ -184,8 +184,22 @@ def stmt_sql_get_history():
         FROM history
         WHERE user_id = usr_id_in
         ORDER BY
-            transacted ASC,
+            transacted DESC,
             symbol;
+    $$
+    LANGUAGE SQL;
+    """
+
+    return stmt
+
+
+def stmt_sql_func_insert_history():
+    stmt = """
+    CREATE OR REPLACE FUNCTION sql_insert_history(user_id_in bigint, transacted_in timestamp with time zone, symbol_in text, name_in text, shares_in bigint, price_in numeric, total_in numeric, price_bought_in numeric, date_bought_in timestamp with time zone)
+    RETURNS TABLE (user_id bigint, transacted timestamp with time zone, symbol text, name text, shares bigint, price numeric, total numeric, price_bought numeric, date_bought timestamp with time zone)
+    AS $$
+        INSERT INTO history (user_id, transacted, symbol, name, shares, price, total, price_bought, date_bought) VALUES (user_id_in, transacted_in, symbol_in, name_in, shares_in, price_in, total_in, price_bought_in, date_bought_in)
+            RETURNING user_id, transacted, symbol, name, shares, price, total, price_bought, date_bought;
     $$
     LANGUAGE SQL;
     """
@@ -195,13 +209,13 @@ def stmt_sql_get_history():
 
 def stmt_sql_upd_user():
     stmt = """
-    CREATE OR REPLACE FUNCTION sql_user_upd(usr_name text, cash_delta float DEFAULT 101)
-    RETURNS TABLE (usr_id integer, usr_name text, usr_cash float)
+    CREATE OR REPLACE FUNCTION sql_user_upd(usr_name_in text, cash_delta_in float DEFAULT 0)
+    RETURNS TABLE (user_id bigint, username text, cash float)
     AS $$
         UPDATE users
-            SET cash = cash + cash_delta
-            WHERE username = usr_name;
-        SELECT * FROM sql_get_user(usr_name);
+            SET cash = cash - cash_delta_in
+            WHERE username = usr_name_in
+            RETURNING id, username, cash;
     $$
     LANGUAGE SQL;
     """
@@ -212,170 +226,3 @@ def stmt_sql_upd_user():
 #--------ARCHIVE------------------------------------------------
 ################################################################
 #---------------------------------------------------------------
-
-
-def stmt_plpgsql_proc_insert_user():
-    """LANGUAGE plpgsql"""
-    
-    stmt = """
-    CREATE OR REPLACE PROCEDURE plpgsql_insert_user(usr_name_in text)
-    AS $$
-        BEGIN
-            INSERT INTO users (username) VALUES (usr_name_in);
-            COMMIT;
-        END;
-    $$
-    LANGUAGE plpgsql;
-    """
-    return stmt
-
-
-def stmt_plpgsql_proc_add_user():
-    """Execute first:
-        stmt_plpgsql_proc_insert_user();
-    """
-
-    stmt = """
-    DROP FUNCTION IF EXISTS plpgsql_proc_add_user(text);
-    CREATE OR REPLACE FUNCTION plpgsql_proc_add_user(usr_name_in text, OUT usr_name text)
-    AS $$
-        BEGIN
-            usr_name := usr_name_in;
-            CALL plpgsql_insert_user(usr_name_in);
-        END;
-    $$ 
-    LANGUAGE plpgsql;
-    """
-    return stmt
-
-
-def stmt_sql_add_user():
-    """Execute first:
-        stmt_get_user();
-    """
-
-    stmt = """
-    CREATE OR REPLACE FUNCTION sql_add_user(usr_name_in text)
-    RETURNS TABLE (usr_id integer, usr_name text)
-    AS $$
-        INSERT INTO users (username) VALUES (usr_name_in);
-        SELECT
-            usr.usr_id,
-            usr.usr_name
-        FROM sql_get_user(usr_name_in) AS usr;
-    $$ 
-    LANGUAGE SQL;
-    """
-
-    # DROP FUNCTION IF EXISTS sql_add_user(text);        
-    # CALL sql_insert_user(usr_name_in);
-    # SELECT
-    #     usr.usr_id
-    # FROM sql_get_user(usr_name_in) AS usr
-
-    # SELECT
-    #     users.id
-    # FROM users 
-    # WHERE username = usr_name_in;
-
-    # SELECT
-    #     usr.usr_id
-    # FROM get_user(usr_name_in) AS usr;
-
-    return stmt
-
-
-def stmt_sql_proc_add_user():
-    """Execute first:
-        stmt_sql_insert_user();
-    """
-    
-    stmt = """
-    CREATE OR REPLACE PROCEDURE sql_proc_add_user(usr_name_in text)
-    AS $$
-        CALL sql_insert_user(usr_name_in);
-    $$ 
-    LANGUAGE SQL;
-    """
-    return stmt
-
-
-def stmt_sql_func_add_user():
-    """Execute first:
-        sql_proc_add_user();
-        stmt_get_user();
-    """
-
-    stmt = """
-    CREATE OR REPLACE FUNCTION sql_add_user(usr_name_in text)
-    RETURNS TABLE (usr_id integer, usr_name text)
-    AS $$
-        CALL sql_proc_add_user(usr_name_in);
-        SELECT
-            usr.usr_id,
-            usr.usr_name
-        FROM sql_get_user(usr_name_in) AS usr;
-    $$ 
-    LANGUAGE SQL;
-    """
-    return stmt
-
-
-def stmt_sql_proc_insert_user():
-    """"""
-    
-    stmt = """
-    CREATE OR REPLACE PROCEDURE sql_insert_user(usr_name_in text)
-    LANGUAGE SQL
-    BEGIN ATOMIC
-        INSERT INTO users (username) VALUES (usr_name_in);
-    END;
-    """
-    return stmt
-
-
-def stmt_sql_add_user_v1():
-    """Execute first:
-        stmt_get_user();
-        this pocedure works, but does not save ultimately new user
-    """
-
-    stmt = """
-    CREATE OR REPLACE FUNCTION sql_add_user(usr_name_in text)
-    RETURNS TABLE (usr_id integer, usr_name text)
-    AS $$
-        INSERT INTO users (username) VALUES (usr_name_in);
-        SELECT
-            usr.usr_id,
-            usr.usr_name
-        FROM sql_get_user(usr_name_in) AS usr;
-    $$ 
-    LANGUAGE SQL;
-    """
-    return stmt
-
-
-def stmt_sql_add_user_vx():
-    """Execute first:
-        stmt_get_user();
-    """
-
-    stmt = """
-    """
-
-    # DROP FUNCTION IF EXISTS sql_add_user(text);        
-    # CALL sql_insert_user(usr_name_in);
-    # SELECT
-    #     usr.usr_id
-    # FROM sql_get_user(usr_name_in) AS usr
-
-    # SELECT
-    #     users.id
-    # FROM users 
-    # WHERE username = usr_name_in;
-
-    # SELECT
-    #     usr.usr_id
-    # FROM get_user(usr_name_in) AS usr;
-
-    return stmt

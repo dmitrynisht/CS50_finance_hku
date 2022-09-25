@@ -110,6 +110,8 @@ def sandbox_lookup(symbol):
 
 def usd(value):
     """Format value as USD."""
+    if f"${value:,.2f}" == "$0.00":
+        return f"${value:,.5f}"
     return f"${value:,.2f}"
 
 
