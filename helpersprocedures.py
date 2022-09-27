@@ -96,67 +96,133 @@ def stmt_sql_func_insert_user():
     return stmt
 
 
+def stmt_sql_get_portfolio():
+    """LANGUAGE SQL;
+    
+    Summarizing, for the user currently logged in, which stocks the user owns.
+        expected keyword arguments:
+            dont_filter_by_symbol: True/False/None, if empty regarded as True
+            symbol: 'string', when dont_filter_by_symbol is False, otherwise regarded as empty string
+
+        In other words, to filter portfolio by some symbol we might call this function as following:
+            get_portfolio(dont_filter_by_symbol=False, symbol='AAPL')
+    """
+
+    stmt = """
+    CREATE OR REPLACE FUNCTION sql_portfolio(usr_id_in integer, dont_filter_by_symbol boolean DEFAULT TRUE, symbol_in text DEFAULT '')
+    RETURNS TABLE (symbol text, name text, shares bigint)
+    AS $$
+    WITH
+        filter (user_id, dont_filter_by_symbol, symbol) AS (
+            VALUES
+                (usr_id_in::integer, dont_filter_by_symbol::boolean, symbol_in::text)
+        )
+    SELECT
+        UPPER(hist.symbol) AS symbol,
+        hist.name,
+        SUM(hist.shares) AS shares
+    FROM history AS hist
+    INNER JOIN filter
+    USING (user_id)
+    WHERE (filter.dont_filter_by_symbol
+        OR (hist.symbol = filter.symbol))
+    GROUP BY
+        hist.symbol,
+        hist.name
+    HAVING SUM(shares) > 0
+    ORDER BY
+        symbol ASC
+    $$
+    LANGUAGE SQL;
+    """
+
+    return stmt
+
+
+def stmt_sql_balance_with_prices():
+    """LANGUAGE SQL;
+    """
+
+    stmt = """
+    CREATE OR REPLACE FUNCTION sql_balance_with_prices(usr_id_in integer, dont_filter_by_symbol boolean DEFAULT TRUE, symbol_in text DEFAULT '')
+    RETURNS TABLE (symbol text, name text, shares bigint, price_bought float, date_bought timestamp with time zone)
+    AS $$
+    WITH
+        filter (user_id, dont_filter_by_symbol, symbol) AS (
+            VALUES
+                (usr_id_in::integer, dont_filter_by_symbol::boolean, symbol_in::text)
+        )
+    SELECT
+        hist.symbol,
+        hist.name,
+        SUM(hist.shares) AS shares,
+        hist.price_bought,
+        hist.date_bought
+    FROM history AS hist
+    INNER JOIN filter
+    USING (user_id)
+    WHERE (filter.dont_filter_by_symbol
+        OR (hist.symbol = filter.symbol))
+    GROUP BY
+        hist.symbol,
+        hist.name,
+        hist.price_bought,
+        hist.date_bought
+    HAVING SUM(shares) > 0
+    ORDER BY
+        hist.symbol ASC,
+        hist.date_bought ASC
+    $$
+    LANGUAGE SQL;
+    """
+
+    return stmt
+
+
 def stmt_sql_get_portfolio_with_prices():
     """LANGUAGE SQL;
     """
 
     stmt = """
     CREATE OR REPLACE FUNCTION sql_portfolio_with_prices(usr_id_in integer, dont_filter_by_symbol boolean DEFAULT TRUE, symbol_in text DEFAULT '')
-    RETURNS TABLE (symbol text, name text, shares integer, price_bought float)
+    RETURNS TABLE (symbol text, name text, shares bigint, price_bought float)
     AS $$
-        WITH
-            filter (user_id, dont_filter_by_symbol, symbol) AS (
-                VALUES
-                    (usr_id_in::integer, dont_filter_by_symbol::boolean, symbol_in::text)
-            )
-        SELECT
-            UPPER(balance.symbol) AS symbol,
-            balance.name,
-            balance.shares,
-            last_prices.price_bought AS price_bought
-        FROM (
-                SELECT
-                    hist1.symbol,
-                    hist1.name,
-                    SUM(hist1.shares) AS shares
-                FROM history AS hist1
-                INNER JOIN filter
-                USING (user_id)
-                WHERE (filter.dont_filter_by_symbol
-                    OR (hist1.symbol = filter.symbol))
-                GROUP BY	
-                    hist1.symbol,
-                    hist1.name
-                HAVING SUM(shares) > 0
-            ) AS balance
-        INNER JOIN (
-                SELECT
-                    hist3.symbol,
-                    hist3.name,	
-                    hist3.price_bought,
-                    hist3.date_bought
-                FROM (
-                        SELECT
-                            hist2.user_id,
-                            hist2.symbol,
-                            hist2.name,
-                            MAX(hist2.date_bought) AS date_bought
-                        FROM history AS hist2
-                        INNER JOIN filter
-                        USING (user_id)
-                        WHERE (filter.dont_filter_by_symbol
-                            OR (hist2.symbol = filter.symbol))
-                        GROUP BY
-                            hist2.user_id,
-                            hist2.symbol,
-                            hist2.name
-                    ) AS last_date
-                INNER JOIN history AS hist3
-                USING (user_id, symbol)
-                WHERE
-                    hist3.transacted = last_date.date_bought
-            ) AS last_prices
-        USING (symbol)
+    WITH
+        filter (user_id, dont_filter_by_symbol, symbol) AS (
+            VALUES
+                (usr_id_in::integer, dont_filter_by_symbol::boolean, symbol_in::text)
+        )
+    SELECT
+        UPPER(last_date.symbol) AS symbol,
+        last_date.name,	
+        last_date.shares,
+        last_date.price_bought
+    FROM (
+            SELECT
+                hist2.user_id,
+                hist2.symbol,
+                hist2.name,
+                hist2.price_bought,
+                SUM(hist2.shares) OVER w_last_bought AS shares,
+                hist2.date_bought AS date_bought,
+                MAX(hist2.date_bought) OVER w_last_bought AS max_date_bought
+            FROM history AS hist2
+            INNER JOIN filter
+            USING (user_id)
+            WHERE (filter.dont_filter_by_symbol
+                OR (hist2.symbol = filter.symbol))
+            WINDOW
+                w_last_bought AS (
+                    PARTITION BY 
+                        hist2.user_id,
+                        hist2.symbol,
+                        hist2.name
+                )
+        ) AS last_date
+    WHERE
+        last_date.date_bought = last_date.max_date_bought
+    ORDER BY
+        symbol ASC
     $$
     LANGUAGE SQL;
     """

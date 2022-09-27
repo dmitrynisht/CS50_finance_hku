@@ -1,10 +1,10 @@
 import os
 import requests
+requests.adapters.DEFAULT_RETRIES = 3 # increase retries number
 import urllib.parse
 
 from flask import redirect, render_template, session
 from functools import wraps
-
 
 def apology(message, code=400):
     """Render message as an apology to user."""
@@ -42,9 +42,17 @@ def lookup(symbol):
     try:
         api_key = os.environ.get("API_KEY")
         url = f"https://cloud.iexapis.com/stable/stock/{urllib.parse.quote_plus(symbol)}/quote?token={api_key}"
-        response = requests.get(url)
+        # report_variables(
+        #     'stock request ',
+        #     [url],
+        # )
+        response = requests.get(url, timeout=5)
         response.raise_for_status()
-    except requests.RequestException:
+    except requests.RequestException as var_error:
+        report_variables(
+            'stock request ERROR',
+            [var_error.strerror],
+        )
         return None
 
     # Parse response
@@ -143,7 +151,6 @@ def mkappdir():
     
     # return os.fsdecode(mkdtemp(dir=dir))
     
-
     # Custom behaviour for mkdtemp()
     # return mkdtemp()
 

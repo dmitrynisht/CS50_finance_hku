@@ -35,14 +35,14 @@
             <div class="collapse navbar-collapse" id="navbar">
                 {% if session.user_id %}
                     <ul class="navbar-nav mr-auto mt-2">
-                        {% for href, caption in [('/quote', 'Quote'), ('/buy', 'Buy'), ('/sell', 'Sell'), ('/history', 'History')] %}
+                        {% for href, caption in [('/quote', 'Quote'), ('/buy', 'Buy'), ('/sell', 'Sell'), ('/history', 'History'), ('/stocks', 'All symbols')] %}
                             {% if s_action == href %}
                                 <li class="nav-item"><a class="nav-link active" aria-current="page" href="{{ href }}">{{ caption }}</a></li>
                             {% else %}
                                 <li class="nav-item"><a class="nav-link" href="{{ href }}">{{ caption }}</a></li>
                             {% endif %}
                         {% endfor %}
-                        <li class="nav-item"><a class="nav-link disabled" href="/stocks">All symbols</a></li>
+                        <!-- <li class="nav-item"><a class="nav-link disabled" href="/stocks">All symbols</a></li> -->
                     </ul>
                     <ul class="navbar-nav ml-auto mt-2">
                         <li class="nav-item"><a class="nav-link disabled" href="">Logged as {{ session.username }}</a></li>

@@ -10,7 +10,7 @@ from werkzeug.security import check_password_hash, generate_password_hash
 from datetime import datetime as dt, timezone
 
 from helpers import apology, login_required, lookup, usd, sandbox_lookup, report_variables, mkappdir
-from helpersprocedures import stmt_sql_get_user, stmt_sql_func_insert_user, stmt_sql_get_portfolio_with_prices, stmt_sql_get_history, stmt_sql_func_insert_history, stmt_sql_upd_user
+from helpersprocedures import stmt_sql_get_user, stmt_sql_func_insert_user, stmt_sql_get_portfolio_with_prices, stmt_sql_get_history, stmt_sql_func_insert_history, stmt_sql_upd_user, stmt_sql_get_portfolio, stmt_sql_balance_with_prices
 
 # Configure application
 app = Flask(__name__)
@@ -43,7 +43,7 @@ Session(app)
 uri = os.getenv("DATABASE_URL")
 if uri.startswith("postgres://"):
     uri = uri.replace("postgres://", "postgresql://")
-# uri = "postgresql://dev:050922pga@172.31.4.248:5432/mydb1_test_restore"
+# uri = "postgresql://dev:050922pga@172.31.15.82:5432/mydb1_test_restore"
 db = SQL(uri)
 # - deploying to Heroku
 
@@ -51,27 +51,26 @@ db = SQL(uri)
 if not os.environ.get("API_KEY"):
     raise RuntimeError("API_KEY not set")
 
-
 @app.route("/")
 @login_required
 def index():
     """Show portfolio of stocks"""
 
-    # Printing report №Logged into portfolio
-    report_variables(
-        'Logged into portfolio',
-        session["user_id"],
-        session["username"],
-    )
+    # # Printing report №Logged into portfolio
+    # report_variables(
+    #     'Logged into portfolio',
+    #     session["user_id"],
+    #     session["username"],
+    # )
 
     portfolio = get_portfolio_with_prices()
     
-    # Printing report №
-    report_variables(
-        'portfolio with prices recieved ',
-        *portfolio,
-        ['type of portfolio: ', type(portfolio)],
-    )
+    # # Printing report №
+    # report_variables(
+    #     'portfolio with prices recieved ',
+    #     *portfolio,
+    #     ['type of portfolio: ', type(portfolio)],
+    # )
 
     stock_total = 0
     if portfolio:
@@ -82,9 +81,12 @@ def index():
             # # Printing report №
             # report_variables(
             #   stock['symbol'],
-            #   [stock['price']],
-            #   [response['price']],
+            #   response,
             # )
+            if not response:
+                stock['price'] = 0
+                stock['total'] = 0
+                continue
 
             stock['price'] = response['price']
             stock['total'] = response['price'] * stock['shares']
@@ -108,10 +110,15 @@ def top_stocks():
 
     stmt = 'top stocks are coming soon!'
     # stmt='https://sandbox.iexapis.com/stable/tops?token=Tpk_7a91d97de0a341a3be6115e86011a1ff'
+    # response = requests.get(stmt)
+    # quote = response.json()
+    # lsymbols = [item['symbol'] for item in lquote
+    # lsymbols.sort()
+    msg_stocks = 'Stocks list isnt done. You might find interesting next links:'
 
     flash(stmt)
 
-    return render_template("stocks.html", name=request.args.get("name", "name-world"))
+    return render_template("stocks.html", stocks_list=request.args.get("stocks_list", msg_stocks))
 
 
 @app.route("/quote", methods=["GET", "POST"])
@@ -188,13 +195,13 @@ def buy():
         symbol = request.form.get("symbol")
         shares = request.form.get("shares")
 
-        # Printing report №
-        report_variables(
-            "BUY POST TESTING",
-            ["symbol:", symbol],
-            ["shares:", shares],
-            # ["type of shares:", type(shares)],
-        )
+        # # Printing report №
+        # report_variables(
+        #     "BUY POST TESTING",
+        #     ["symbol:", symbol],
+        #     ["shares:", shares],
+        #     # ["type of shares:", type(shares)],
+        # )
 
         if not symbol:
             return apology("Invalid symbol!", 400)
@@ -218,7 +225,7 @@ def buy():
         if shares < 1:
             return apology("Shares required as positive INTEGER!", 400)
 
-        transaction_data = buy_stocks(symbol=symbol, shares=shares, method=request.method)
+        transaction_data = buy_stocks(symbol=symbol, shares=shares)
         if not transaction_data["trn_complete"]:
             trn_msg = transaction_data["trn_msg"] if "trn_msg" in transaction_data else "Invalid symbol!"
             return apology(trn_msg, 400)
@@ -238,14 +245,15 @@ def buy():
     
     # Printing report №
     report_variables(
-      "BUY GET",
-      ["symbol:", symbol],
+        "BUY GET",
+        ["symbol:", symbol],
     )
 
     return render_template("buy.html", symbol=request.args.get("symbol", symbol), s_action=request.args.get("s_action", s_action))
 
 
 @app.route("/index_buy")
+@login_required
 def index_buy():
     """
     expected args:
@@ -271,9 +279,9 @@ def index_buy():
         ["method:",             request.method],
         ["symbol:",             symbol],
         ["stock_shares:",       stock_shares],
-    #     ["i_shares:",           i_shares],
-    #     ["stock_total_before:", stock_total_before],
-    #     ["total:",              total],
+        ["i_shares:",           i_shares],
+        # ["stock_total_before:", stock_total_before],
+        # ["total:",              total],
     )
 
     # Providing some tests before transacting
@@ -312,7 +320,7 @@ def index_buy():
         }
 
     # Commiting transaction
-    transaction_data = buy_stocks(symbol=symbol, shares=i_shares, method=request.method)
+    transaction_data = buy_stocks(symbol=symbol, shares=i_shares)
     if not transaction_data["trn_complete"]:
         trn_msg = transaction_data["trn_msg"] if "trn_msg" in transaction_data else "Invalid symbol!"
         stock_data = {
@@ -365,7 +373,7 @@ def index_buy():
     return stock_data
 
 
-def buy_stocks(*, symbol, shares, method):
+def buy_stocks(*, symbol, shares):
     """"""
 
     symbol = symbol.lower()
@@ -377,9 +385,6 @@ def buy_stocks(*, symbol, shares, method):
     # report_variables(
     #     "buy_stocks quote TESTING",
     #     ["quote:", quote],
-    #     # ["msg_url:", msg_url],
-    #     # ["error_msg:", error_msg],
-    #     ["method:", method],
     # )
 
     if not quote:
@@ -427,14 +432,14 @@ def buy_stocks(*, symbol, shares, method):
         "transaction_type": "shares bought",
     }
 
-    # Adding data
+    # Opened connection with database
     connection = db._rawconnect()
+    
+    # Adding data to database
     try:
-        # Commiting transaction
+        # Adding transaction to database
         commit_transaction(connection=connection, transaction_data=transaction_data)
         
-        connection.commit()
-
     except:
         # Printing report №
         report_variables(
@@ -446,11 +451,14 @@ def buy_stocks(*, symbol, shares, method):
             'trn_msg': 'AN ERROR OCCURED WHILE EXECUTING TRANSACTION',
         }
         return transaction_data
+        
+    else:
+        # Commiting transaction
+        connection.commit()
 
     finally:
         # Don't stay connected unnecessarily
         db._disconnect()
-        connection.close()
 
     transaction_data["trn_complete"] = True
     transaction_data["cash_delta"] = -total
@@ -471,11 +479,12 @@ def sell():
         symbol = request.form.get("symbol")
         shares = request.form.get("shares")
 
-        # # Printing report №
-        # report_variables("NUMBER OF SHARES TESTING",
-        # ["symbol:", symbol],
-        # ["shares:", shares],
-        # )
+        # Printing report №
+        report_variables(
+            "SELL POST TESTING",
+            ["symbol:", symbol],
+            ["shares:", shares],
+        )
 
         if not symbol:
             return apology("Invalid symbol!", 400)
@@ -499,7 +508,7 @@ def sell():
         if shares < 1:
             return apology("Shares required as positive INTEGER!", 400)
 
-        transaction_data = sell_stocks(symbol=symbol, shares=shares, method=request.method)
+        transaction_data = sell_stocks(symbol=symbol, shares=shares)
         if not transaction_data["trn_complete"]:
             trn_msg = transaction_data["trn_msg"] if "trn_msg" in transaction_data else "Invalid symbol!"
             return apology(trn_msg, 400)
@@ -507,21 +516,25 @@ def sell():
         # Reporting results
         return redirect("/")
 
-    else:
+    portfolio = get_portfolio()
+    # symbol_selected = request.args.get("symbol_selected")
 
-        portfolio = get_portfolio()
-        symbol_selected = request.args.get("symbol_selected")
+    # Printing report №
+    report_variables(
+        "SELL GET",
+        # ["symbol_selected:", symbol_selected],
+        *portfolio,
+    )
 
-        # # Printing report №
-        # report_variables(
-        #   "VIEW REQUEST SUCCESS",
-        #   ["ROWS:", portfolio],
-        # )
-
-        return render_template("sell.html", symbols=portfolio, s_action=request.args.get("s_action", s_action), symbol_selected=request.args.get("symbol_selected", symbol_selected))
+    return render_template(
+            "sell.html", 
+            symbols=portfolio, 
+            s_action=request.args.get("s_action", s_action)
+            )
 
 
 @app.route("/index_sell")
+@login_required
 def index_sell():
     """
     expected args:
@@ -537,19 +550,20 @@ def index_sell():
     stock_shares = request.args.get("stock_shares") or 0
     stock_shares = int(stock_shares)
     stock_total_before = request.args.get("stock_total") or 0
-    stock_total_before = round(float(stock_total_before), 4)
+    stock_total_before = round(float(stock_total_before), 5)
     total = request.args.get("total") or 0
-    total = round(float(total), 4)
+    total = round(float(total), 5)
 
-    # # Printing report №
-    # report_variables("index_sell TESTING: data recieved",
-    # ["method:",             request.method],
-    # ["symbol:",             symbol],
-    # ["stock_shares:",       stock_shares],
-    # ["i_shares:",           i_shares],
-    # ["stock_total_before:", stock_total_before],
-    # ["total:",              total],
-    # )
+    # Printing report №
+    report_variables(
+        "index_sell TESTING: data recieved",
+        ["method:",             request.method],
+        ["symbol:",             symbol],
+        ["stock_shares:",       stock_shares],
+        ["i_shares:",           i_shares],
+        # ["stock_total_before:", stock_total_before],
+        # ["total:",              total],
+    )
 
     # Providing some tests before transacting
     if not symbol:
@@ -587,7 +601,7 @@ def index_sell():
         }
 
     # Commiting transaction
-    transaction_data = sell_stocks(symbol=symbol, shares=i_shares, method=request.method)
+    transaction_data = sell_stocks(symbol=symbol, shares=i_shares)
     if not transaction_data["trn_complete"]:
         trn_msg = transaction_data["trn_msg"] if "trn_msg" in transaction_data else "Invalid symbol!"
         stock_data = {
@@ -599,7 +613,7 @@ def index_sell():
     cash_balance = transaction_data["cash"]
     cash_delta = transaction_data["cash_delta"]
     stock_shares -= i_shares
-    stock_total_balance = round(transaction_data["stock_total_balance"], 4)
+    stock_total_balance = round(transaction_data["stock_total_balance"], 5)
     stock_total_delta = stock_total_balance - stock_total_before
 
     # # Printing report №
@@ -626,17 +640,28 @@ def index_sell():
         'total':            total,
         'total_lbl':        usd(total),
     }
+    # Printing report №
+    report_variables(
+        "TOTAL_SELL_transaction TESTING",
+        *stock_data.items(),
+    )
 
     return stock_data
 
 
-def sell_stocks(*, symbol, shares, method):
+def sell_stocks(*, symbol, shares):
     """"""
 
     symbol = symbol.lower()
 
     # Final quote before commiting transaction
     quote = lookup(symbol)
+
+    # Printing report №
+    report_variables(
+        "sell_stocks quote TESTING",
+        ["quote:", quote],
+    )
 
     if not quote:
         transaction_data = {
@@ -656,7 +681,7 @@ def sell_stocks(*, symbol, shares, method):
         return transaction_data
 
     # Making shure user have that many shares
-    portfolio = get_portfolio(dont_filter_by_symbol=False, symbol=symbol)
+    portfolio = get_portfolio(dont_filter_by_symbol=False, symbol_in=symbol)
     if portfolio[0]['shares'] < shares:
         transaction_data = {
             'trn_complete': False,
@@ -683,58 +708,84 @@ def sell_stocks(*, symbol, shares, method):
     }
 
     # lets collect all the data into dict
-    balance_with_prices = get_balance_with_prices(dont_filter_by_symbol=False, symbol=symbol)
-    for row in balance_with_prices:
+    balance_with_prices = get_balance_with_prices(dont_filter_by_symbol=False, symbol_in=symbol)
+    
+    # # Printing report №
+    # report_variables(
+    #     "sell_stocks balance_with_prices RECIEVED",
+    #     *balance_with_prices,
+    #     ['transaction_data: ', transaction_data],
+    # )
 
-        if shares <= 0:
-            # updating stock_total only, no transactions needed
-            if row["shares"] > 0:
+    # Opened connection with database
+    connection = db._rawconnect()
+    
+    # Adding data to database
+    try:
+        for row in balance_with_prices:
+
+            if shares <= 0:
+                # updating stock_total only, no transactions needed
+                if row["shares"] > 0:
+                    stock_total_balance += row["shares"] * price
+
+                continue
+
+            # negative "shares" as we selling them
+            if row["shares"] < shares:
+                transaction_data["shares"] = -row["shares"]
+                shares -= row["shares"]
+                row["shares"] = 0
+
+            else:
+                transaction_data["shares"] = -shares
+                row["shares"] -= shares
+                shares = 0
+                # updating stock_total
                 stock_total_balance += row["shares"] * price
 
-            continue
+            total = transaction_data["shares"] * price
+            transaction_data["total"] = total
+            transaction_data["price_bought"] = row["price_bought"]
+            transaction_data["date_bought"] = row["date_bought"]
 
-        # negative "shares" as we selling them
-        if row["shares"] < shares:
-            transaction_data["shares"] = -row["shares"]
-            shares -= row["shares"]
-            row["shares"] = 0
-
-        else:
-            transaction_data["shares"] = -shares
-            row["shares"] -= shares
-            shares = 0
-            # updating stock_total
-            stock_total_balance += row["shares"] * price
-
-        total = transaction_data["shares"] * price
-        transaction_data["total"] = total
-        transaction_data["price_bought"] = row["price_bought"]
-        transaction_data["date_bought"] = row["date_bought"]
-
-        # Adding transaction to database
-        try:
-            # Commiting transaction
-            commit_transaction(transaction_data=transaction_data)
+            # Adding transaction to database
+            commit_transaction(connection=connection, transaction_data=transaction_data)
             transaction_data["cash"] = cash - total
             cash -= total
             cash_delta -= total
-
-        except:
+            
             # Printing report №
             report_variables(
-                "SELL HANDLING",
-                ["AN ERROR OCCURED WHILE EXECUTING TRANSACTION"],
+                "sell_stocks SHARES SOLD",
+                ['shares sold: ', transaction_data["shares"]],
+                ['shares to be sold: ', shares],
             )
-            transaction_data = {
-                'trn_complete': False,
-                'trn_msg': 'AN ERROR OCCURED WHILE EXECUTING TRANSACTION',
-            }
-            return transaction_data
+
+    except:
+        # Printing report №
+        report_variables(
+            "SELL HANDLING",
+            ["AN ERROR OCCURED WHILE EXECUTING TRANSACTION"],
+        )
+        transaction_data = {
+            'trn_complete': False,
+            'trn_msg': 'AN ERROR OCCURED WHILE EXECUTING TRANSACTION',
+        }
+        return transaction_data
+
+    else:
+        # Commiting transaction
+        connection.commit()
+    
+    finally:
+        # Don't stay connected unnecessarily
+        db._disconnect()
 
     transaction_data["trn_complete"] = True
     transaction_data["stock_total_balance"] = stock_total_balance
     transaction_data["cash_delta"] = cash_delta
-    transaction_data["cash"] = round(transaction_data["cash"], 4)
+    transaction_data["cash"] = round(transaction_data["cash"], 5)
 
     return transaction_data
 
@@ -748,13 +799,13 @@ def history():
 
     history = get_history(user_id=session["user_id"])
 
-   # Printing report №
-    report_variables(
-        'route_history TESTING: data recieved',
-        ['session.*: ', session],
-        *history,
-        ['type of history: ', type(history)],
-    )
+    # # Printing report №
+    # report_variables(
+    #     'route_history TESTING: data recieved',
+    #     ['session.*: ', session],
+    #     *history,
+    #     ['type of history: ', type(history)],
+    # )
 
     return render_template("history.html", history=history, s_action=s_action)
 
@@ -894,35 +945,35 @@ def get_balance_with_prices(**kwargs):
     """
     """
 
-    stmt_balance_with_prices = ("""
-    SELECT
-        symbol,
-        name,
-        SUM(shares) AS shares,
-        price AS price_bought,
-        date_bought
-    FROM history AS history
-    INNER JOIN
-        (SELECT
-            ? AS user_id,
-            ? AS dont_filter_by_symbol,
-            ? AS f_symbol) AS filter
-    ON history.user_id = filter.user_id
-    AND (filter.dont_filter_by_symbol
-        OR (history.symbol = filter.f_symbol))
-    GROUP BY
-        history.symbol,
-        history.date_bought
-    HAVING SUM(shares) > 0
-    ORDER BY
-        symbol ASC,
-        date_bought ASC
-    """)
+    # # Printing report №
+    # report_variables(
+    #     "get_balance_with_prices checking START",
+    #     *kwargs.items(),
+    # )
 
-    dont_filter_by_symbol = kwargs['dont_filter_by_symbol'] if ('dont_filter_by_symbol' in kwargs) else True
-    symbol = '' if dont_filter_by_symbol else kwargs['symbol']
+    # USING dbm_alch.py and sqlalchemy.engine: New fashion
+    stmt = {
+        'stored_func': [    
+            stmt_sql_balance_with_prices,
+        ],
+        'proc_name': {
+            'sql_balance_with_prices': False
+        }
+    }
+    kwargs = {
+        'usr_id_in': (kwargs['usr_id_in'] if ('usr_id_in' in kwargs) else session["user_id"]),
+        'dont_filter_by_symbol': (kwargs['dont_filter_by_symbol'] if ('dont_filter_by_symbol' in kwargs) else True),
+        'symbol_in': (kwargs['symbol_in'] if ('symbol_in' in kwargs) else ''),
+    }    
+    kwargs['symbol_in'] = ('' if kwargs['dont_filter_by_symbol'] else kwargs['symbol_in'])
 
-    rows = db.execute(stmt_balance_with_prices, int(session["user_id"]), dont_filter_by_symbol, symbol)
+    # # Printing report №
+    # report_variables(
+    #     "get_balance_with_prices checking FINISH",
+    #     *kwargs.items(),
+    # )
+
+    rows = db.execute(stmt, kwargs)
 
     return rows
 
@@ -937,39 +988,36 @@ def get_portfolio(**kwargs):
         In other words, to filter portfolio by some symbol we might call this function as following:
             get_portfolio(dont_filter_by_symbol=False, symbol='AAPL')
     """
-
-    stmt = ("""
-    SELECT
-        UPPER(symbol) AS symbol,
-        name,
-        SUM(shares) AS shares
-    FROM history AS history
-    INNER JOIN
-        (SELECT
-            ? AS user_id,
-            ? AS dont_filter_by_symbol,
-            ? AS f_symbol) AS filter
-    ON history.user_id = filter.user_id
-    AND (filter.dont_filter_by_symbol
-        OR (history.symbol = filter.f_symbol))
-    GROUP BY history.symbol
-    HAVING SUM(shares) > 0
-    ORDER BY
-        symbol ASC
-    """)
-
-    dont_filter_by_symbol = kwargs['dont_filter_by_symbol'] if ('dont_filter_by_symbol' in kwargs) else True
-    symbol = '' if dont_filter_by_symbol else kwargs['symbol']
-
+    
     # # Printing report №
-    # report_variables("get_portfolio checking",
-    # ["dont_filter_by_symbol:", dont_filter_by_symbol],
-    # ["dont_filter_by_symbol type:", type(dont_filter_by_symbol)],
-    # ["symbol:", symbol],
-    # ["symbol type:", type(symbol)],
+    # report_variables(
+    #     "get_portfolio checking start",
+    #     *kwargs.items(),
     # )
 
-    rows = db.execute(stmt, int(session["user_id"]), dont_filter_by_symbol, symbol)
+    # USING dbm_alch.py and sqlalchemy.engine: New fashion
+    stmt = {
+        'stored_func': [    
+            stmt_sql_get_portfolio,
+        ],
+        'proc_name': {
+            'sql_portfolio': False
+        }
+    }
+    kwargs = {
+        'usr_id_in': (kwargs['usr_id_in'] if ('usr_id_in' in kwargs) else session["user_id"]),
+        'dont_filter_by_symbol': (kwargs['dont_filter_by_symbol'] if ('dont_filter_by_symbol' in kwargs) else True),
+        'symbol_in': (kwargs['symbol_in'] if ('symbol_in' in kwargs) else ''),
+    }    
+    kwargs['symbol_in'] = ('' if kwargs['dont_filter_by_symbol'] else kwargs['symbol_in'])
+
+    # # Printing report №
+    # report_variables(
+    #     "get_portfolio checking finish",
+    #     *kwargs.items(),
+    # )
+
+    rows = db.execute(stmt, kwargs)
 
     return rows
 
@@ -1030,11 +1078,11 @@ def get_history(*, user_id):
         'usr_id_in': user_id
     }
 
-    # Printing report №
-    report_variables(
-        "get_history checking",
-        *kwargs.items(),
-    )
+    # # Printing report №
+    # report_variables(
+    #     "get_history checking",
+    #     *kwargs.items(),
+    # )
 
     rows = db.execute(stmt, kwargs)
 
@@ -1065,18 +1113,19 @@ def commit_transaction(*, connection, transaction_data):
         'price_bought_in': transaction_data["price_bought"],
         'date_bought_in': transaction_data["date_bought"],
     }
-    # Printing report №
-    report_variables(
-        "hist before COMMIT:",
-        [*kwargs.items()],
-    )
+    # # Printing report №
+    # report_variables(
+    #     "hist before COMMIT:",
+    #     [*kwargs.items()],
+    # )
+
     hist_row = db.execute(stmt, kwargs, connection=connection)
-    # Printing report №
-    report_variables(
-        "hist after COMMIT:",
-        ["user_id: ", hist_row[0]["user_id"]],
-        ["transacted: ", hist_row[0]["transacted"]],
-    )
+    # # Printing report №
+    # report_variables(
+    #     "hist after COMMIT:",
+    #     ["user_id: ", hist_row[0]["user_id"]],
+    #     ["transacted: ", hist_row[0]["transacted"]],
+    # )
 
     # Altering data into users table
     stmt = {
@@ -1092,19 +1141,19 @@ def commit_transaction(*, connection, transaction_data):
         # 'usr_name_in': "asdf",
         'cash_delta_in': transaction_data["total"],
     }
-    # Printing report №
-    report_variables(
-        "usrs before COMMIT:",
-        [*kwargs.items()],
-    )
+    # # Printing report №
+    # report_variables(
+    #     "usrs before COMMIT:",
+    #     [*kwargs.items()],
+    # )
     usr_row = db.execute(stmt, kwargs, connection=connection)
 
-    # Printing report №
-    report_variables(
-        "usrs after COMMIT:",
-        ["user_id: ", usr_row[0]["user_id"]],
-        ["user_cash: ", usr_row[0]["cash"]],
-    )
+    # # Printing report №
+    # report_variables(
+    #     "usrs after COMMIT:",
+    #     ["user_id: ", usr_row[0]["user_id"]],
+    #     ["user_cash: ", usr_row[0]["cash"]],
+    # )
 
     pass
 
@@ -1121,8 +1170,7 @@ for code in default_exceptions:
     app.errorhandler(code)(errorhandler)
 
 
-def testingrequests():
-    """"""
+def testing_commit():
     transaction_data = {
         "user_id": 1,
         "user_id": 1,
@@ -1153,13 +1201,31 @@ def testingrequests():
         connection.close()
 
 
+def testing_lookup():
+    response = lookup('aapl')
+    # stmt='https://sandbox.iexapis.com/stable/tops?token=Tpk_7a91d97de0a341a3be6115e86011a1ff'
+    # response = requests.get(stmt)
+    # quote = response.json()
+    # lsymbols = [item['symbol'] for item in lquote
+    # lsymbols.sort()
+    s = ""
+    pass
+
+
+def testingrequests():
+    """"""
+    # testing_commit()
+    testing_lookup()
+
+
 def main(argv=None):
     if argv is None:
         argv = sys.argv
 
     print('hello world')
 
-    testingrequests()
+    with app.test_request_context():
+        testingrequests()
     #
 
     # folder and this file where moved to linux file system

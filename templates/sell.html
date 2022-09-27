@@ -8,11 +8,12 @@
     <form action="/sell" method="post">
         <div class="mb-3">
             <select autofocus="" class="form-control" name="symbol">
-                {% if symbol_selected %}
+                <!-- {% if symbol_selected %}
                     <option disabled="">Symbol</option>
                 {% else %}
                     <option disabled="" selected>Symbol</option>
-                {% endif %}
+                {% endif %} -->
+                <option disabled="" selected>Symbol</option>
                 {% for symbol in symbols %}
                     {% if symbol.symbol==symbol_selected %}
                         <option selected value="{{ symbol.symbol }}">{{ symbol.symbol }}</option>
