@@ -108,6 +108,7 @@ def index():
 def top_stocks():
     """List of top stocks"""
 
+    s_action = "/stocks"
     stmt = 'top stocks are coming soon!'
     # stmt='https://sandbox.iexapis.com/stable/tops?token=Tpk_7a91d97de0a341a3be6115e86011a1ff'
     # response = requests.get(stmt)
@@ -118,7 +119,11 @@ def top_stocks():
 
     # flash(stmt)
 
-    return render_template("stocks.html", stocks_list=request.args.get("stocks_list", msg_stocks))
+    return render_template(
+                "stocks.html",
+                s_action=request.args.get("s_action", s_action),
+                stocks_list=request.args.get("stocks_list", msg_stocks)
+            )
 
 
 @app.route("/quote", methods=["GET", "POST"])
