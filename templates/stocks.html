@@ -5,23 +5,25 @@
 {% endblock %}
 
 {% block main %}
-    <form action="/stocks" method="get">
+
+    <form class="row row-cols-lg-auto g-3 align-items-center" action="/stocks" method="get"></form>
         {% if stocks_list %}
-          <h6>{{ stocks_list }}!</h6>
+            <h6>{{ stocks_list }}!</h6>
         {% else %}
-          3
+            3
         {% endif %}
     </form>
     <div class="container">
-      yahoo! finance: <a href="https://finance.yahoo.com/etfs">Top ETFs</a>;
+        yahoo! finance: <a href="https://finance.yahoo.com/etfs">Top ETFs</a>;
     </div>
     <div class="container">
-      yahoo! finance: <a href="https://finance.yahoo.com/most-active">Most Actives</a>;
+        yahoo! finance: <a href="https://finance.yahoo.com/most-active">Most Actives</a>;
     </div>
     <div class="container">
-      yahoo! finance: <a href="https://finance.yahoo.com/gainers">Day Gainers</a>;
+        yahoo! finance: <a href="https://finance.yahoo.com/gainers">Day Gainers</a>;
     </div>
     <div class="container">
-      yahoo! finance: <a href="https://finance.yahoo.com/most-active-penny-stocks">Most Active Penny Stocks</a>;
+        yahoo! finance: <a href="https://finance.yahoo.com/most-active-penny-stocks">Most Active Penny Stocks</a>;
     </div>
+
 {% endblock %}

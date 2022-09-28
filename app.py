@@ -103,7 +103,7 @@ def index():
     return render_template("index.html", portfolio=portfolio, cash=cash, total=total)
 
 
-@app.route("/stocks", methods=["GET", "POST"])
+@app.route("/stocks", methods=["GET"])
 @login_required
 def top_stocks():
     """List of top stocks"""
@@ -116,7 +116,7 @@ def top_stocks():
     # lsymbols.sort()
     msg_stocks = 'Stocks list isnt done. You might find interesting next links:'
 
-    flash(stmt)
+    # flash(stmt)
 
     return render_template("stocks.html", stocks_list=request.args.get("stocks_list", msg_stocks))
 
