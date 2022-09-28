@@ -390,6 +390,7 @@ def buy_stocks(*, symbol, shares):
     if not quote:
         transaction_data = {
             'trn_complete': False,
+            'trn_msg': 'Quoting symbol problems while buying stocks.',
         }
         return transaction_data
 
@@ -448,7 +449,7 @@ def buy_stocks(*, symbol, shares):
         )
         transaction_data = {
             'trn_complete': False,
-            'trn_msg': 'AN ERROR OCCURED WHILE EXECUTING TRANSACTION',
+            'trn_msg': 'Couldn`t add data to db while buying stocks.',
         }
         return transaction_data
         
@@ -666,6 +667,7 @@ def sell_stocks(*, symbol, shares):
     if not quote:
         transaction_data = {
             'trn_complete': False,
+            'trn_msg': 'Quoting symbol problems while selling stocks.',
         }
         return transaction_data
 
@@ -770,7 +772,7 @@ def sell_stocks(*, symbol, shares):
         )
         transaction_data = {
             'trn_complete': False,
-            'trn_msg': 'AN ERROR OCCURED WHILE EXECUTING TRANSACTION',
+            'trn_msg': 'Couldn`t add data to db while selling stocks.',
         }
         return transaction_data
 

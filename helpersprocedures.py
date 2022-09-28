@@ -184,13 +184,13 @@ def stmt_sql_get_portfolio_with_prices():
     """
 
     stmt = """
-    CREATE OR REPLACE FUNCTION sql_portfolio_with_prices(usr_id_in integer, dont_filter_by_symbol boolean DEFAULT TRUE, symbol_in text DEFAULT '')
+    CREATE OR REPLACE FUNCTION sql_portfolio_with_prices(usr_id_in bigint, dont_filter_by_symbol boolean DEFAULT TRUE, symbol_in text DEFAULT '')
     RETURNS TABLE (symbol text, name text, shares bigint, price_bought float)
     AS $$
     WITH
         filter (user_id, dont_filter_by_symbol, symbol) AS (
             VALUES
-                (usr_id_in::integer, dont_filter_by_symbol::boolean, symbol_in::text)
+                (usr_id_in::bigint, dont_filter_by_symbol::boolean, symbol_in::text)
         )
     SELECT
         UPPER(last_date.symbol) AS symbol,
@@ -221,6 +221,7 @@ def stmt_sql_get_portfolio_with_prices():
         ) AS last_date
     WHERE
         last_date.date_bought = last_date.max_date_bought
+        AND last_date.shares > 0
     ORDER BY
         symbol ASC
     $$
