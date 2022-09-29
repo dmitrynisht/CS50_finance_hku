@@ -1,8 +1,8 @@
 def stmt_plpgsql_recieve_kwargs_v1():
     """LANGUAGE plpgsql;
-    recieve_kwargs is testing function.
-    I'm testing 'passing parameters to request' process.
-    I'm passing to request two parameters and receiving in response one string.
+    plpgsql_recieve_kwargs_v1 is testing function.
+    I'm testing passing parameters to request.
+    I'm passing to request two parameters and receiving in response a table.
     """
 
     # =========================================================================
@@ -19,8 +19,8 @@ def stmt_plpgsql_recieve_kwargs_v1():
         string comment*/
         <<filter>>
         DECLARE
-            kwarg1 ALIAS FOR recieve_kwargs.kwarg1;
-            kwarg2 ALIAS FOR recieve_kwargs.kwarg2;
+            kwarg1 ALIAS FOR plpgsql_recieve_kwargs_v1.kwarg1;
+            kwarg2 ALIAS FOR plpgsql_recieve_kwargs_v1.kwarg2;
         BEGIN
             RETURN QUERY SELECT
                             'kwarg1 val' AS f1name,
@@ -28,15 +28,16 @@ def stmt_plpgsql_recieve_kwargs_v1():
                             'kwarg2 val' AS f2name,
                             filter.kwarg2 AS f2val;
         END filter;
-    $any-tag can_be_used$ LANGUAGE plpgsql;
+    $any-tag can_be_used$
+    LANGUAGE plpgsql;
     """
     return stmt
 
 
 def stmt_sql_recieve_kwargs_v2():
     """LANGUAGE SQL;
-    recieve_kwargs is testing function.
-    I'm testing 'passing parameters to request' process.
+    sql_recieve_kwargs_v2 is testing function.
+    I'm testing passing parameters to request.
     I'm passing to request two parameters and receiving in response one string.
     """
 
@@ -109,13 +110,13 @@ def stmt_sql_get_portfolio():
     """
 
     stmt = """
-    CREATE OR REPLACE FUNCTION sql_portfolio(usr_id_in integer, dont_filter_by_symbol boolean DEFAULT TRUE, symbol_in text DEFAULT '')
+    CREATE OR REPLACE FUNCTION sql_portfolio(usr_id_in bigint, dont_filter_by_symbol boolean DEFAULT TRUE, symbol_in text DEFAULT '')
     RETURNS TABLE (symbol text, name text, shares bigint)
     AS $$
     WITH
         filter (user_id, dont_filter_by_symbol, symbol) AS (
             VALUES
-                (usr_id_in::integer, dont_filter_by_symbol::boolean, symbol_in::text)
+                (usr_id_in::bigint, dont_filter_by_symbol::boolean, symbol_in::text)
         )
     SELECT
         UPPER(hist.symbol) AS symbol,
@@ -144,13 +145,13 @@ def stmt_sql_balance_with_prices():
     """
 
     stmt = """
-    CREATE OR REPLACE FUNCTION sql_balance_with_prices(usr_id_in integer, dont_filter_by_symbol boolean DEFAULT TRUE, symbol_in text DEFAULT '')
+    CREATE OR REPLACE FUNCTION sql_balance_with_prices(usr_id_in bigint, dont_filter_by_symbol boolean DEFAULT TRUE, symbol_in text DEFAULT '')
     RETURNS TABLE (symbol text, name text, shares bigint, price_bought float, date_bought timestamp with time zone)
     AS $$
     WITH
         filter (user_id, dont_filter_by_symbol, symbol) AS (
             VALUES
-                (usr_id_in::integer, dont_filter_by_symbol::boolean, symbol_in::text)
+                (usr_id_in::bigint, dont_filter_by_symbol::boolean, symbol_in::text)
         )
     SELECT
         hist.symbol,
@@ -236,8 +237,8 @@ def stmt_sql_get_history():
     """
 
     stmt = """
-    CREATE OR REPLACE FUNCTION sql_get_history(usr_id_in INTEGER)
-    RETURNS TABLE (transacted TIMESTAMP, symbol TEXT, shares INTEGER, price FLOAT, total FLOAT, price_bought FLOAT, date_bought TIMESTAMP, name TEXT)
+    CREATE OR REPLACE FUNCTION sql_get_history(usr_id_in bigint)
+    RETURNS TABLE (transacted TIMESTAMP, symbol TEXT, shares bigint, price FLOAT, total FLOAT, price_bought FLOAT, date_bought TIMESTAMP, name TEXT)
     AS $$
         SELECT
             transacted,
