@@ -1208,21 +1208,9 @@ def testing_commit():
         connection.close()
 
 
-def testing_lookup():
-    response = lookup('aapl')
-    # stmt='https://sandbox.iexapis.com/stable/tops?token=Tpk_7a91d97de0a341a3be6115e86011a1ff'
-    # response = requests.get(stmt)
-    # quote = response.json()
-    # lsymbols = [item['symbol'] for item in lquote
-    # lsymbols.sort()
-    s = ""
-    pass
-
-
 def testingrequests():
     """"""
     # testing_commit()
-    testing_lookup()
 
 
 def main(argv=None):
