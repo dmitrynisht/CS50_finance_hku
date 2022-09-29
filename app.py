@@ -43,7 +43,7 @@ Session(app)
 uri = os.getenv("DATABASE_URL")
 if uri.startswith("postgres://"):
     uri = uri.replace("postgres://", "postgresql://")
-# uri = "postgresql://dev:050922pga@172.31.15.82:5432/mydb1_test_restore"
+
 db = SQL(uri)
 # - deploying to Heroku
 
