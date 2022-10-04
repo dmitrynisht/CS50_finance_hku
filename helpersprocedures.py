@@ -193,7 +193,7 @@ def stmt_sql_get_portfolio_with_prices():
             VALUES
                 (usr_id_in::bigint, dont_filter_by_symbol::boolean, symbol_in::text)
         )
-    SELECT
+    SELECT  DISTINCT
         UPPER(last_date.symbol) AS symbol,
         last_date.name,	
         last_date.shares,

@@ -17,9 +17,8 @@
             </div>
 
             <!-- + My addition-->
-            <div class="row row-cols-lg-auto g-3 align-items-center mt-4">
             {% if symbol %}
-                <div class="col">
+                <div class="col mt-4">
                 {% if stock %}
                     <label>
                         A share of {{ stock.name }} ({{ stock.symbol }}) costs {{ stock.price | usd }}
@@ -33,7 +32,6 @@
                 {% endif %}
                 </div>
             {% endif %}
-            </div>
             <!-- - My addition-->
         </div>
 

@@ -1,7 +1,7 @@
 import os
 
 # from cs50 import SQL
-from dbm_alch import SQL
+from dbm_alch import nt9kSQL
 from flask import Flask, flash, redirect, render_template, request, session, url_for
 from flask_session import Session
 
@@ -44,7 +44,7 @@ uri = os.getenv("DATABASE_URL")
 if uri.startswith("postgres://"):
     uri = uri.replace("postgres://", "postgresql://")
 
-db = SQL(uri)
+db = nt9kSQL(uri)
 # - deploying to Heroku
 
 # Make sure API key is set
@@ -943,7 +943,7 @@ def get_portfolio_with_prices(**kwargs):
     #     *kwargs.items(),
     # )
     
-    rows = db.execute(stmt, kwargs)
+    rows = db.stproc_execute(stmt, kwargs)
 
     return rows
 
@@ -980,7 +980,7 @@ def get_balance_with_prices(**kwargs):
     #     *kwargs.items(),
     # )
 
-    rows = db.execute(stmt, kwargs)
+    rows = db.stproc_execute(stmt, kwargs)
 
     return rows
 
@@ -1024,7 +1024,7 @@ def get_portfolio(**kwargs):
     #     *kwargs.items(),
     # )
 
-    rows = db.execute(stmt, kwargs)
+    rows = db.stproc_execute(stmt, kwargs)
 
     return rows
 
@@ -1044,7 +1044,7 @@ def get_user(*, username):
     kwargs = {
         'usr_name_in': username
     }
-    rows = db.execute(stmt, kwargs)
+    rows = db.stproc_execute(stmt, kwargs)
 
     return rows
 
@@ -1064,7 +1064,7 @@ def add_user(*, username, hash):
         'usr_name_in': username,
         'usr_hash_in': hash,
     }
-    rows = db.execute(stmt, kwargs)
+    rows = db.stproc_execute(stmt, kwargs)
 
     return rows
 
@@ -1091,7 +1091,7 @@ def get_history(*, user_id):
     #     *kwargs.items(),
     # )
 
-    rows = db.execute(stmt, kwargs)
+    rows = db.stproc_execute(stmt, kwargs)
 
     return rows
 
@@ -1126,7 +1126,7 @@ def commit_transaction(*, connection, transaction_data):
     #     [*kwargs.items()],
     # )
 
-    hist_row = db.execute(stmt, kwargs, connection=connection)
+    hist_row = db.stproc_execute(stmt, kwargs, connection=connection)
     # # Printing report №
     # report_variables(
     #     "hist after COMMIT:",
@@ -1153,7 +1153,7 @@ def commit_transaction(*, connection, transaction_data):
     #     "usrs before COMMIT:",
     #     [*kwargs.items()],
     # )
-    usr_row = db.execute(stmt, kwargs, connection=connection)
+    usr_row = db.stproc_execute(stmt, kwargs, connection=connection)
 
     # # Printing report №
     # report_variables(
@@ -1175,6 +1175,20 @@ def errorhandler(e):
 # Listen for errors
 for code in default_exceptions:
     app.errorhandler(code)(errorhandler)
+
+
+def testing_user_login():
+    # Query database for username
+    rows = get_user(username="asdf")
+
+    pass
+
+
+def testing_user_history():
+    # Query database for username
+    rows = get_history(user_id=1)
+
+    pass
 
 
 def testing_commit():
@@ -1211,6 +1225,9 @@ def testing_commit():
 def testingrequests():
     """"""
     # testing_commit()
+    # testing_user_login()
+    testing_user_history()
+    pass
 
 
 def main(argv=None):
@@ -1231,6 +1248,7 @@ def main(argv=None):
     # test_connect_psyco()
     # test_connect_psyco_alch()
     s ='stop'
+
 
 if __name__ == '__main__':
     import sys
